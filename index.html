@@ -1,0 +1,2752 @@
+<!doctype html>
+<html lang="ko"><head>
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시험장 전자기기 감지 시뮬레이터</title>
+    <meta name="description" content="감독관 시점(교탁 고정 55도 시야 및 반경 2m 순찰)과 CCTV 시점을 교차 활용하여 시험장 내 전자기기 전파와 특이 행동을 자막으로 감지하고 퇴실·보류·추후 정밀 검사를 수행하는 단일 파일 시뮬레이션">
+    <meta property="og:title" content="시험장 전자기기 감지 시뮬레이터">
+    <meta property="og:description" content="감독관 시점(55도 시야 고정·반경 2m 순찰)과 CCTV 시점 교차 감시를 통한 시험장 부정행위 탐지 시뮬레이션">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --font-sans: "Plus Jakarta Sans", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --bg-canvas: #f8fafc;
+        --bg-surface: #ffffff;
+        --bg-subtle: #f1f5f9;
+        --border-hairline: #e2e8f0;
+        --border-strong: #cbd5e1;
+        --ink-primary: #0f172a;
+        --ink-secondary: #475569;
+        --ink-muted: #64748b;
+        --accent-sky: #0284c7;
+        --accent-amber: #d97706;
+        --accent-red: #dc2626;
+        --accent-emerald: #059669;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-canvas);
+        color: var(--ink-primary);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--accent-sky);
+        outline-offset: 2px;
+      }
+
+      .mono-num {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Top Header (Strict 3-Zone Contract) */
+      .app-header {
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .app-header-inner {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .brand-title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--ink-primary);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .header-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--ink-secondary);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .header-meta-subject {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .btn-primary-dark {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        background-color: #0f172a;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: background-color 150ms ease;
+      }
+
+      .btn-primary-dark:hover {
+        background-color: #1e293b;
+      }
+
+      /* Main Container */
+      .main-container {
+        max-width: 1440px;
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px 24px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      /* Workspace Toolbar */
+      .toolbar {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        padding: 10px 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        background-color: var(--bg-subtle);
+        border-radius: 8px;
+      }
+
+      .seg-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-secondary);
+        border-radius: 6px;
+        white-space: nowrap;
+        transition: background-color 150ms ease, color 150ms ease;
+      }
+
+      .seg-btn:hover {
+        color: var(--ink-primary);
+      }
+
+      .seg-btn.active {
+        background-color: #ffffff;
+        color: var(--ink-primary);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      }
+
+      .seg-btn.active-sky {
+        background-color: #ffffff;
+        color: #0369a1;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      }
+
+      .tool-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 11px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #334155;
+        background-color: var(--bg-subtle);
+        border-radius: 6px;
+        white-space: nowrap;
+        transition: background-color 150ms ease;
+      }
+
+      .tool-btn:hover {
+        background-color: #e2e8f0;
+      }
+
+      .tool-btn.active-toggle {
+        background-color: var(--accent-sky);
+        color: #ffffff;
+      }
+
+      .tool-btn.active-speed {
+        background-color: #0f172a;
+        color: #ffffff;
+      }
+
+      .tool-btn.hold-alert {
+        background-color: #fef3c7;
+        color: #78350f;
+        font-weight: 600;
+      }
+
+      .tool-btn.hold-alert:hover {
+        background-color: #fde68a;
+      }
+
+      .angle-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .angle-slider {
+        width: 112px;
+        accent-color: var(--accent-sky);
+        cursor: pointer;
+      }
+
+      .angle-readout {
+        width: 44px;
+        text-align: right;
+        font-size: 12px;
+        color: var(--ink-secondary);
+      }
+
+      /* Two-Zone Split */
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 8fr) minmax(320px, 4fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      /* Stage Card */
+      .stage-card {
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        background-color: var(--bg-surface);
+        overflow: hidden;
+        transition: background-color 200ms ease, border-color 200ms ease;
+      }
+
+      .stage-card.cctv-mode {
+        border-color: #1e293b;
+        background-color: #020617;
+      }
+
+      .stage-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px;
+        font-size: 12px;
+        border-bottom: 1px solid var(--bg-subtle);
+        background-color: rgba(248, 250, 252, 0.85);
+        color: var(--ink-secondary);
+      }
+
+      .stage-card.cctv-mode .stage-topbar {
+        border-bottom-color: #1e293b;
+        background-color: rgba(15, 23, 42, 0.92);
+        color: #cbd5e1;
+      }
+
+      .stage-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .stage-topbar-title {
+        font-weight: 600;
+        color: var(--ink-primary);
+        white-space: nowrap;
+      }
+
+      .stage-card.cctv-mode .stage-topbar-title {
+        color: #f1f5f9;
+      }
+
+      .stage-topbar-sub {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .stage-topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .svg-wrapper {
+        position: relative;
+        user-select: none;
+      }
+
+      #classroom-svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* Live Subtitle Bar */
+      .subtitle-bar {
+        background-color: #0f172a;
+        color: #ffffff;
+        border-top: 1px solid var(--border-hairline);
+        padding: 12px 16px;
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .stage-card.cctv-mode .subtitle-bar {
+        border-top-color: #1e293b;
+        background-color: #0f172a;
+      }
+
+      .subtitle-left {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .subtitle-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .subtitle-tag.info {
+        background-color: var(--accent-sky);
+        color: #ffffff;
+      }
+
+      .subtitle-tag.warning {
+        background-color: #f59e0b;
+        color: #0f172a;
+      }
+
+      .subtitle-tag.critical {
+        background-color: var(--accent-red);
+        color: #ffffff;
+      }
+
+      .subtitle-text {
+        min-width: 0;
+      }
+
+      .subtitle-headline {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: #ffffff;
+      }
+
+      .subtitle-detail {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: #cbd5e1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .subtitle-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .subtitle-time {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .subtitle-jump-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      .subtitle-jump-btn:hover {
+        background-color: rgba(255, 255, 255, 0.22);
+      }
+
+      .subtitle-idle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      /* Right Inspection Panel */
+      .side-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .panel-card {
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        background-color: var(--bg-surface);
+        padding: 20px;
+      }
+
+      .panel-card-tight {
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        background-color: var(--bg-surface);
+        overflow: hidden;
+      }
+
+      .student-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--bg-subtle);
+      }
+
+      .student-meta {
+        font-size: 12px;
+        color: var(--ink-muted);
+      }
+
+      .student-name {
+        margin: 4px 0 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .btn-walk-near {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #0369a1;
+        background-color: #f0f9ff;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .btn-walk-near:hover {
+        background-color: #e0f2fe;
+      }
+
+      .evidence-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .evidence-box {
+        border: 1px solid var(--border-hairline);
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .evidence-box.rf-active {
+        border-color: #bae6fd;
+        background-color: #f0f9ff;
+      }
+
+      .evidence-box.cctv-active {
+        border-color: #fde68a;
+        background-color: #fffbeb;
+      }
+
+      .evidence-box-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .evidence-box-desc {
+        margin: 6px 0 0;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--ink-secondary);
+      }
+
+      .callout-box {
+        margin-top: 12px;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .callout-box.critical {
+        border: 1px solid #fecaca;
+        background-color: #fef2f2;
+        color: #7f1d1d;
+      }
+
+      .callout-box.warning {
+        border: 1px solid #fde68a;
+        background-color: #fffbeb;
+        color: #78350f;
+      }
+
+      .callout-box.success {
+        border: 1px solid #a7f3d0;
+        background-color: #ecfdf5;
+        color: #064e3b;
+      }
+
+      .callout-box.neutral {
+        border: 1px solid var(--border-hairline);
+        background-color: #f8fafc;
+        color: var(--ink-primary);
+      }
+
+      .action-grid {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .btn-expel {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        background-color: var(--accent-red);
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      .btn-expel:hover {
+        background-color: #b91c1c;
+      }
+
+      .btn-hold {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #78350f;
+        background-color: #fef3c7;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      .btn-hold:hover {
+        background-color: #fde68a;
+      }
+
+      .btn-clear {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #064e3b;
+        background-color: #d1fae5;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      .btn-clear:hover {
+        background-color: #a7f3d0;
+      }
+
+      .btn-later-full {
+        margin-top: 8px;
+        width: 100%;
+        padding: 9px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-primary);
+        background-color: var(--bg-subtle);
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .btn-later-full:hover {
+        background-color: #e2e8f0;
+      }
+
+      /* Tabs Card */
+      .tabs-bar {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 6px;
+        background-color: var(--bg-subtle);
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .tab-btn {
+        padding: 7px 8px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ink-secondary);
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      .tab-btn.active {
+        background-color: #ffffff;
+        color: var(--ink-primary);
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      }
+
+      .tab-scroll {
+        max-height: 290px;
+        overflow-y: auto;
+      }
+
+      .log-item {
+        width: 100%;
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--bg-subtle);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .log-item:last-child {
+        border-bottom: none;
+      }
+
+      .log-item:hover {
+        background-color: #f8fafc;
+      }
+
+      .log-item-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+      }
+
+      .log-item-head {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .log-item-sub {
+        margin: 0;
+        font-size: 11px;
+        color: var(--ink-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .hold-banner {
+        padding: 10px 16px;
+        background-color: #fffbeb;
+        border-bottom: 1px solid #fef3c7;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        color: #78350f;
+      }
+
+      .hold-row {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--bg-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .hold-row:hover {
+        background-color: #f8fafc;
+      }
+
+      .empty-state {
+        padding: 24px 16px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--ink-muted);
+        line-height: 1.5;
+      }
+
+      /* Modals */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background-color: rgba(2, 6, 23, 0.52);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .modal-backdrop.hidden {
+        display: none;
+      }
+
+      .modal-box {
+        width: 100%;
+        max-width: 720px;
+        max-height: 88vh;
+        background-color: #ffffff;
+        border: 1px solid var(--border-hairline);
+        border-radius: 12px;
+        box-shadow: 0 20px 32px rgba(15, 23, 42, 0.22);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .modal-box.wide {
+        max-width: 900px;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--bg-subtle);
+        background-color: #f8fafc;
+      }
+
+      .modal-kicker {
+        margin: 0;
+        font-size: 12px;
+        color: var(--ink-muted);
+      }
+
+      .modal-title {
+        margin: 2px 0 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .modal-close {
+        padding: 6px;
+        color: var(--ink-muted);
+        border-radius: 8px;
+      }
+
+      .modal-close:hover {
+        background-color: var(--bg-subtle);
+        color: var(--ink-primary);
+      }
+
+      .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .kpi-card {
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .kpi-card.emerald {
+        border-color: #a7f3d0;
+        background-color: rgba(236, 253, 245, 0.6);
+      }
+
+      .kpi-card.amber {
+        border-color: #fde68a;
+        background-color: rgba(255, 251, 235, 0.6);
+      }
+
+      .kpi-card.red {
+        border-color: #fecaca;
+        background-color: rgba(254, 242, 242, 0.6);
+      }
+
+      .kpi-label {
+        margin: 0;
+        font-size: 12px;
+        color: var(--ink-secondary);
+      }
+
+      .kpi-val {
+        margin: 6px 0 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ink-primary);
+      }
+
+      .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 14px 24px;
+        border-top: 1px solid var(--bg-subtle);
+        background-color: #f8fafc;
+      }
+
+      .btn-secondary {
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #334155;
+        background-color: #ffffff;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+      }
+
+      .btn-secondary:hover {
+        background-color: #f8fafc;
+      }
+
+      .later-split {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 420px;
+        overflow: hidden;
+      }
+
+      .later-queue {
+        border-right: 1px solid var(--border-hairline);
+        background-color: #f8fafc;
+        overflow-y: auto;
+      }
+
+      .later-queue-btn {
+        width: 100%;
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-hairline);
+      }
+
+      .later-queue-btn.active {
+        background-color: #ffffff;
+      }
+
+      .later-detail {
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .step-card {
+        border: 1px solid var(--border-hairline);
+        border-radius: 8px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .btn-scan {
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        background-color: var(--accent-sky);
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .btn-scan:hover {
+        background-color: #0369a1;
+      }
+
+      .btn-scan:disabled {
+        background-color: var(--bg-subtle);
+        color: var(--ink-muted);
+        cursor: default;
+      }
+
+      @media (max-width: 1080px) {
+        .workspace-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .header-meta {
+          display: none;
+        }
+        .kpi-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .later-split {
+          grid-template-columns: 1fr;
+        }
+        .later-queue {
+          border-right: none;
+          border-bottom: 1px solid var(--border-hairline);
+          max-height: 160px;
+        }
+        .step-card {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  <script src="/_aistudio-iframe.js?v=29045eb3"></script><script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@2.0.4"></script><style>.aistudio-hover-highlight { box-shadow: inset 0 0 0 0.5px white, inset 0 0 0 1.5px rgba(128,128,128,0.6) !important; }.aistudio-active-highlight { outline: 2px solid #87a9ff !important; outline-offset: -2px !important; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3), inset 0 0 0 0.5px rgba(0,0,0,0.3) !important; }.aistudio-generating-blur { filter: blur(5px) grayscale(100%) brightness(28%) !important; transition: filter 0.3s ease; }#aistudio-focus-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: #87a9ff; border-radius: 12px; z-index: 10000; padding: 8px; color: #32302c; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }#aistudio-hover-mode-tag { position: absolute; display: none; align-items: center; gap: 4px; background: rgba(128,128,128,0.6); border-radius: 12px; z-index: 10000; padding: 8px; color: white; font-family: Inter, sans-serif; font-size: 14px; font-style: normal; font-weight: 500; line-height: 21px; pointer-events: none; }.aistudio-img-icon { display: none; vertical-align: middle; pointer-events: auto; cursor: pointer; }.aistudio-img-icon.visible { display: inline-flex; }#aistudio-focus-mode-tag .aistudio-img-icon { position: relative; width: 26px; height: 26px; background: #32302c; border-radius: 6px; margin: -4px -4px -4px 0; }#aistudio-focus-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }#aistudio-hover-mode-tag .aistudio-img-icon { position: relative; width: 18px; height: 18px; margin-left: 4px; }#aistudio-hover-mode-tag .aistudio-img-icon::before { content: ""; position: absolute; top: 0; left: 0; width: 18px; height: 18px; background-color: white; -webkit-mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; mask-image: url("https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/edit_fix_auto/default/24px.svg"); mask-size: contain; mask-repeat: no-repeat; }#aistudio-focus-mode-tag .aistudio-img-icon:hover, #aistudio-hover-mode-tag .aistudio-img-icon:hover { background: #424242 !important; }#aistudio-focus-mode-tag .aistudio-img-icon:active, #aistudio-hover-mode-tag .aistudio-img-icon:active { background: #393f51 !important; }</style></head>
+  <body>
+    <header class="app-header">
+      <div class="app-header-inner">
+        <span class="brand-title">시험장 전자기기 감지 시뮬레이터</span>
+
+        <div id="header-meta" class="header-meta mono-num"></div>
+
+        <button id="btn-open-next-exam" type="button" class="btn-primary-dark">
+          다음 시험
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <line x1="19" y1="5" x2="19" y2="19"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-container">
+      <!-- Workspace Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <div class="segmented" role="group" aria-label="감시 시점 선택">
+            <button id="btn-view-proctor" type="button" class="seg-btn active">감독관 시점</button>
+            <button id="btn-view-cctv" type="button" class="seg-btn">CCTV 시점</button>
+          </div>
+
+          <div id="proctor-posture-group" class="segmented" role="group" aria-label="감독관 위치 모드" style="display: inline-flex;">
+            <button id="btn-posture-fixed" type="button" class="seg-btn active-sky">교탁 고정 (55°)</button>
+            <button id="btn-posture-patrol" type="button" class="seg-btn">순찰 이동 (반경 2m)</button>
+          </div>
+
+          <div id="fixed-controls" class="toolbar-group" style="display: flex;">
+            <button id="btn-turn-left" type="button" class="tool-btn">◀ 좌측</button>
+            <div class="angle-control">
+              <input id="head-angle-slider" class="angle-slider" type="range" min="-68" max="68" value="0" aria-label="시야 각도 조절">
+              <span id="angle-readout" class="angle-readout mono-num">0°</span>
+            </div>
+            <button id="btn-turn-right" type="button" class="tool-btn">우측 ▶</button>
+            <button id="btn-auto-sweep" type="button" class="tool-btn">자동 살피기</button>
+          </div>
+
+          <div id="patrol-controls" class="toolbar-group" style="display: none;">
+            <button id="btn-return-desk" type="button" class="tool-btn">교탁 앞으로 이동</button>
+          </div>
+        </div>
+
+        <div class="toolbar-group">
+          <button id="btn-open-later" type="button" class="tool-btn">추후 검사 (0)</button>
+          <button id="btn-pause" type="button" class="tool-btn">일시정지</button>
+          <button id="btn-speed" type="button" class="tool-btn mono-num">1× 속도</button>
+          <button id="btn-download-html" type="button" class="tool-btn" title="이 앱 전체가 담긴 index.html 단일 파일 저장">HTML 다운로드</button>
+        </div>
+      </div>
+
+      <!-- Two-Zone Simulation Split -->
+      <div class="workspace-grid">
+        <!-- Left Interactive Stage -->
+        <section id="stage-card" class="stage-card">
+          <div class="stage-topbar">
+            <div class="stage-topbar-left">
+              <span id="stage-mode-title" class="stage-topbar-title">감독관 교탁 고정 감시 (시야각 55°)</span>
+              <span aria-hidden="true">·</span>
+              <span id="stage-mode-hint" class="stage-topbar-sub">화면 클릭·드래그로 고개 방향 조절 (우리 교실 한정)</span>
+            </div>
+            <div class="stage-topbar-right mono-num">
+              <span id="stage-period-label">1교시 국어 영역</span>
+              <span aria-hidden="true">·</span>
+              <span id="stage-clock">00:07</span>
+            </div>
+          </div>
+
+          <div class="svg-wrapper">
+            <svg id="classroom-svg" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" style="cursor: crosshair;"></svg>
+          </div>
+
+          <div id="subtitle-bar" class="subtitle-bar" role="status" aria-live="polite"></div>
+        </section>
+
+        <!-- Right Control & Inspection Panel -->
+        <aside class="side-stack">
+          <section id="student-detail-card" class="panel-card"></section>
+
+          <section class="panel-card-tight">
+            <div class="tabs-bar">
+              <button id="tab-subtitles" type="button" class="tab-btn active">자막 기록 (2)</button>
+              <button id="tab-held" type="button" class="tab-btn">보류 명단 (0)</button>
+              <button id="tab-actions" type="button" class="tab-btn">조치 내역 (0)</button>
+            </div>
+            <div id="tab-content" class="tab-scroll"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Dedicated Post-Hold Later Inspection Modal -->
+    <div id="later-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="later-modal-title">
+      <div class="modal-box wide">
+        <div class="modal-header">
+          <div>
+            <p id="later-modal-kicker" class="modal-kicker">보류 인원 전담 검증 · 대기 중 0명</p>
+            <h2 id="later-modal-title" class="modal-title">보류 학생 추후 정밀 검사</h2>
+          </div>
+          <button id="btn-close-later" type="button" class="modal-close" aria-label="창 닫기">✕</button>
+        </div>
+        <div id="later-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Exam Result & Next Exam Modal -->
+    <div id="result-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="result-modal-title">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <p id="result-modal-kicker" class="modal-kicker">1교시 국어 영역 감독 결산</p>
+            <h2 id="result-modal-title" class="modal-title">시험 감독 결과 및 부정행위 검출 리포트</h2>
+          </div>
+          <button id="btn-close-result" type="button" class="modal-close" aria-label="창 닫기">✕</button>
+        </div>
+        <div id="result-modal-body" class="modal-body"></div>
+        <div class="modal-footer">
+          <button id="btn-continue-proctor" type="button" class="btn-secondary">계속 감독하기</button>
+          <button id="btn-start-next-exam" type="button" class="btn-primary-dark">다음 시험 시작 →</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+
+        // Geometry constants (1.0m = 72px)
+        var STAGE_WIDTH = 960;
+        var STAGE_HEIGHT = 600;
+        var PIXELS_PER_METER = 72;
+        var OUR_ROOM = { xMin: 44, xMax: 652, yMin: 44, yMax: 556 };
+        var ADJACENT_ROOM = { xMin: 676, xMax: 916, yMin: 44, yMax: 556 };
+        var PROCTOR_DESK = { x: 348, y: 96 };
+        var FIXED_FOV_DEG = 55;
+        var PATROL_RADIUS_METERS = 2.0;
+        var PATROL_RADIUS_PX = PATROL_RADIUS_METERS * PIXELS_PER_METER;
+
+        var SUBJECTS = ['국어 영역', '수학 영역', '영어 영역', '한국사 · 탐구', '제2외국어'];
+        var KOREAN_NAMES = [
+          '김서연', '이준호', '박민준', '최지우', '정현우',
+          '강예은', '조도윤', '윤하은', '장시우', '임수빈',
+          '한태양', '오지민', '서유진', '신동현', '권나연',
+          '황민서', '안재현', '송채원', '전우성', '홍서현',
+          '백승민', '유다인', '남기훈', '문소율', '양준혁', '구하린'
+        ];
+        var CHEATER_PROFILES = [
+          {
+            deviceType: '초소형 무선 이어폰',
+            rfBand: '2.4GHz BLE',
+            behaviorLabel: '머리카락 아래 귀 쪽 반복 손 접촉 및 고개 기울임'
+          },
+          {
+            deviceType: '통신형 스마트워치',
+            rfBand: '2.4GHz Wi-Fi/BLE',
+            behaviorLabel: '왼손 소매 걷어 손목 화면 반복 응시'
+          },
+          {
+            deviceType: '은닉 스마트폰',
+            rfBand: 'LTE / 5G Sub-6',
+            behaviorLabel: '책상 아래 시선 고정 및 두 손 은닉 조작'
+          },
+          {
+            deviceType: '초소형 무선 송수신기',
+            rfBand: '5.8GHz RF',
+            behaviorLabel: '필통 내부 지속적 손 조작 및 주변 곁눈질'
+          }
+        ];
+        var INNOCENT_RF_PROFILES = [
+          { deviceType: '인가된 의료용 보청기', rfBand: '2.4GHz BLE (저전력)' },
+          { deviceType: '전원 미차단 가방 내 기기 (수거함 외)', rfBand: '2.4GHz 대기 신호' }
+        ];
+        var INNOCENT_BEHAVIORS = [
+          '떨어진 지우개를 찾기 위해 책상 아래 순간 응시',
+          '긴장으로 인한 손목 꺾기 및 목 스트레칭 동작',
+          '창가 및 복도 방향 찰나의 시선 분산'
+        ];
+
+        // Math Helpers
+        function degToRad(deg) { return (deg * Math.PI) / 180; }
+        function radToDeg(rad) { return (rad * 180) / Math.PI; }
+        function normalizeAngleDiff(a, b) {
+          return (((a - b + 180) % 360) + 360) % 360 - 180;
+        }
+        function isInsideOurRoom(x, y) {
+          return x >= OUR_ROOM.xMin && x <= OUR_ROOM.xMax && y >= OUR_ROOM.yMin && y <= OUR_ROOM.yMax;
+        }
+        function formatClock(totalSec) {
+          var m = Math.floor(totalSec / 60);
+          var s = totalSec % 60;
+          return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        }
+        function escapeHtml(str) {
+          return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+        function shuffle(arr) {
+          var copy = arr.slice();
+          for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = copy[i];
+            copy[i] = copy[j];
+            copy[j] = tmp;
+          }
+          return copy;
+        }
+
+        function computeClippedFovPolygon(ox, oy, centerDeg, fovDeg) {
+          var half = fovDeg / 2;
+          var steps = 44;
+          var pts = [[ox, oy]];
+          for (var i = 0; i <= steps; i++) {
+            var angleDeg = centerDeg - half + (fovDeg * i) / steps;
+            var rad = degToRad(angleDeg);
+            var dx = Math.cos(rad);
+            var dy = Math.sin(rad);
+            var minT = Infinity;
+
+            if (dx > 1e-6) minT = Math.min(minT, (OUR_ROOM.xMax - ox) / dx);
+            else if (dx < -1e-6) minT = Math.min(minT, (OUR_ROOM.xMin - ox) / dx);
+
+            if (dy > 1e-6) minT = Math.min(minT, (OUR_ROOM.yMax - oy) / dy);
+            else if (dy < -1e-6) minT = Math.min(minT, (OUR_ROOM.yMin - oy) / dy);
+
+            if (!isFinite(minT) || minT < 0) minT = 0;
+            pts.push([ox + dx * minT, oy + dy * minT]);
+          }
+          return pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+        }
+
+        function isPointInFixedFov(ox, oy, centerDeg, tx, ty) {
+          if (!isInsideOurRoom(tx, ty)) return false;
+          var angleToTarget = radToDeg(Math.atan2(ty - oy, tx - ox));
+          return Math.abs(normalizeAngleDiff(angleToTarget, centerDeg)) <= FIXED_FOV_DEG / 2;
+        }
+
+        function getDistanceMeters(x1, y1, x2, y2) {
+          return Math.hypot(x2 - x1, y2 - y1) / PIXELS_PER_METER;
+        }
+
+        function isPointInPatrolRadius(px, py, tx, ty) {
+          if (!isInsideOurRoom(tx, ty)) return false;
+          return getDistanceMeters(px, py, tx, ty) <= PATROL_RADIUS_METERS;
+        }
+
+        function describeDetectionDirection(px, py, headingDeg, tx, ty, seatLabel, col, row, mode) {
+          var dist = getDistanceMeters(px, py, tx, ty);
+          var angleToTarget = radToDeg(Math.atan2(ty - py, tx - px));
+          var relAngle = normalizeAngleDiff(angleToTarget, headingDeg);
+          var roundedAngle = Math.round(relAngle);
+
+          var zoneSide = col <= 2 ? '교실 좌측' : col >= 4 ? '교실 우측' : '중앙';
+          var zoneDepth = row === 1 ? '앞줄' : row === 4 ? '뒷줄' : '중단';
+
+          var relDir = '정면';
+          if (mode === 'fixed') {
+            if (angleToTarget > 105) relDir = '교실 좌측 방향';
+            else if (angleToTarget < 75) relDir = '교실 우측 방향';
+            else relDir = '교탁 정면 방향';
+          } else {
+            var absRel = Math.abs(relAngle);
+            if (absRel <= 25) relDir = '진행 정면';
+            else if (absRel >= 155) relDir = '후방';
+            else if (relAngle > 0) relDir = absRel < 100 ? '우측 전방' : '우측 후방';
+            else relDir = absRel < 100 ? '좌측 전방' : '좌측 후방';
+          }
+
+          return {
+            directionText: relDir + ' (' + (roundedAngle >= 0 ? '+' + roundedAngle : roundedAngle) + '° · ' + dist.toFixed(1) + 'm)',
+            locationText: zoneSide + ' ' + zoneDepth + ' ' + seatLabel + ' 부근',
+            distanceMeters: dist,
+            angleDeg: roundedAngle
+          };
+        }
+
+        function generateExamSession(periodNumber) {
+          var subjectName = SUBJECTS[(periodNumber - 1) % SUBJECTS.length];
+          var names = shuffle(KOREAN_NAMES);
+          var indices = [];
+          for (var i = 0; i < 20; i++) indices.push(i);
+          indices = shuffle(indices);
+
+          var cheaterCount = periodNumber === 1 ? 3 : 2 + (periodNumber % 2);
+          var scenarioMap = {};
+          var cursor = 0;
+          for (var c = 0; c < cheaterCount; c++) scenarioMap[indices[cursor++]] = 'cheater';
+          scenarioMap[indices[cursor++]] = 'rf_innocent';
+          scenarioMap[indices[cursor++]] = 'behavior_innocent';
+          scenarioMap[indices[cursor++]] = 'behavior_innocent';
+
+          var students = [];
+          var startX = 116;
+          var colStep = 116;
+          var startY = 198;
+          var rowStep = 96;
+          var cIdx = 0;
+          var rfIdx = 0;
+          var bIdx = 0;
+
+          for (var row = 1; row <= 4; row++) {
+            for (var col = 1; col <= 5; col++) {
+              var idx = (row - 1) * 5 + (col - 1);
+              var scenario = scenarioMap[idx] || 'normal';
+              var deviceType = null;
+              var rfBand = null;
+              var behaviorLabel = null;
+
+              if (scenario === 'cheater') {
+                var cp = CHEATER_PROFILES[cIdx % CHEATER_PROFILES.length];
+                cIdx++;
+                deviceType = cp.deviceType;
+                rfBand = cp.rfBand;
+                behaviorLabel = cp.behaviorLabel;
+              } else if (scenario === 'rf_innocent') {
+                var ip = INNOCENT_RF_PROFILES[rfIdx % INNOCENT_RF_PROFILES.length];
+                rfIdx++;
+                deviceType = ip.deviceType;
+                rfBand = ip.rfBand;
+              } else if (scenario === 'behavior_innocent') {
+                behaviorLabel = INNOCENT_BEHAVIORS[bIdx % INNOCENT_BEHAVIORS.length];
+                bIdx++;
+              }
+
+              students.push({
+                id: 'p' + periodNumber + '-our-' + col + '-' + row,
+                seatLabel: col + '열 ' + row + '번',
+                col: col,
+                row: row,
+                room: 'our_room',
+                name: names[idx],
+                x: startX + (col - 1) * colStep,
+                y: startY + (row - 1) * rowStep,
+                scenario: scenario,
+                deviceType: deviceType,
+                rfBand: rfBand,
+                behaviorLabel: behaviorLabel,
+                rfEmittingNow: scenario === 'cheater' || scenario === 'rf_innocent',
+                behaviorActiveNow: false,
+                rfTimer: Math.floor(Math.random() * 3) + 1,
+                behaviorTimer: Math.floor(Math.random() * 4) + 2,
+                status: 'active',
+                rfDetected: false,
+                rfLastInfo: null,
+                cctvDetected: false,
+                cctvLastInfo: null,
+                suspectedCheating: false,
+                holdRfChecked: false,
+                holdPhysicalChecked: false
+              });
+            }
+          }
+
+          // Adjacent room students (제2시험실)
+          var adjCols = [744, 848];
+          var adjRows = [210, 330, 450];
+          var adjNameIdx = 20;
+          for (var r = 0; r < adjRows.length; r++) {
+            for (var ac = 0; ac < adjCols.length; ac++) {
+              var hasRf = (r === 0 && ac === 0) || (r === 2 && ac === 0);
+              students.push({
+                id: 'p' + periodNumber + '-adj-' + (ac + 1) + '-' + (r + 1),
+                seatLabel: '제2실 ' + (ac + 1) + '열 ' + (r + 1) + '번',
+                col: ac + 1,
+                row: r + 1,
+                room: 'adjacent_room',
+                name: names[adjNameIdx++ % names.length],
+                x: adjCols[ac],
+                y: adjRows[r],
+                scenario: hasRf ? 'cheater' : 'normal',
+                deviceType: hasRf ? '인접 교실 전자기기 (타 감독관 담당)' : null,
+                rfBand: hasRf ? '2.4GHz RF' : null,
+                behaviorLabel: null,
+                rfEmittingNow: hasRf,
+                behaviorActiveNow: false,
+                rfTimer: 2,
+                behaviorTimer: 99,
+                status: 'active',
+                rfDetected: false,
+                rfLastInfo: null,
+                cctvDetected: false,
+                cctvLastInfo: null,
+                suspectedCheating: false,
+                holdRfChecked: false,
+                holdPhysicalChecked: false
+              });
+            }
+          }
+
+          return {
+            periodNumber: periodNumber,
+            subjectName: subjectName,
+            elapsedSeconds: 0,
+            students: students
+          };
+        }
+
+        // Application State
+        var state = {
+          session: generateExamSession(1),
+          viewMode: 'proctor', // 'proctor' | 'cctv'
+          proctorPosture: 'fixed', // 'fixed' | 'patrol'
+          headOffsetDeg: 0,
+          autoSweep: false,
+          sweepDir: 1,
+          proctorPos: { x: PROCTOR_DESK.x, y: PROCTOR_DESK.y },
+          patrolHeadingDeg: 90,
+          walkTarget: null,
+          selectedStudentId: null,
+          subtitleLog: [],
+          activeSubtitle: null,
+          isPaused: false,
+          simSpeed: 1,
+          activeTab: 'subtitles', // 'subtitles' | 'held' | 'actions'
+          laterModalOpen: false,
+          laterTargetId: null,
+          resultModalOpen: false,
+          isDraggingAim: false
+        };
+
+        var pressedKeys = {};
+        var lastRfAlertAt = {};
+        var lastCctvAlertAt = {};
+        var subtitleSeq = 0;
+        var simTickCounter = 0;
+
+        // DOM Refs
+        var elHeaderMeta = document.getElementById('header-meta');
+        var elBtnViewProctor = document.getElementById('btn-view-proctor');
+        var elBtnViewCctv = document.getElementById('btn-view-cctv');
+        var elPostureGroup = document.getElementById('proctor-posture-group');
+        var elBtnPostureFixed = document.getElementById('btn-posture-fixed');
+        var elBtnPosturePatrol = document.getElementById('btn-posture-patrol');
+        var elFixedControls = document.getElementById('fixed-controls');
+        var elPatrolControls = document.getElementById('patrol-controls');
+        var elAngleSlider = document.getElementById('head-angle-slider');
+        var elAngleReadout = document.getElementById('angle-readout');
+        var elBtnAutoSweep = document.getElementById('btn-auto-sweep');
+        var elBtnOpenLater = document.getElementById('btn-open-later');
+        var elBtnPause = document.getElementById('btn-pause');
+        var elBtnSpeed = document.getElementById('btn-speed');
+        var elStageCard = document.getElementById('stage-card');
+        var elStageModeTitle = document.getElementById('stage-mode-title');
+        var elStageModeHint = document.getElementById('stage-mode-hint');
+        var elStagePeriod = document.getElementById('stage-period-label');
+        var elStageClock = document.getElementById('stage-clock');
+        var elSvg = document.getElementById('classroom-svg');
+        var elSubtitleBar = document.getElementById('subtitle-bar');
+        var elStudentDetail = document.getElementById('student-detail-card');
+        var elTabSubtitles = document.getElementById('tab-subtitles');
+        var elTabHeld = document.getElementById('tab-held');
+        var elTabActions = document.getElementById('tab-actions');
+        var elTabContent = document.getElementById('tab-content');
+        var elLaterModal = document.getElementById('later-modal');
+        var elLaterKicker = document.getElementById('later-modal-kicker');
+        var elLaterBody = document.getElementById('later-modal-body');
+        var elResultModal = document.getElementById('result-modal');
+        var elResultKicker = document.getElementById('result-modal-kicker');
+        var elResultBody = document.getElementById('result-modal-body');
+        var elBtnStartNext = document.getElementById('btn-start-next-exam');
+
+        function pushSubtitle(ev) {
+          subtitleSeq += 1;
+          var item = {
+            id: 'sub-' + Date.now() + '-' + subtitleSeq,
+            source: ev.source,
+            studentId: ev.studentId || null,
+            seatLabel: ev.seatLabel || '',
+            headline: ev.headline,
+            detail: ev.detail,
+            timestamp: ev.timestamp,
+            severity: ev.severity
+          };
+          state.activeSubtitle = item;
+          state.subtitleLog.unshift(item);
+          if (state.subtitleLog.length > 60) state.subtitleLog.length = 60;
+        }
+
+        function runRfScan() {
+          if (state.viewMode !== 'proctor') return false;
+          var originX = state.proctorPosture === 'fixed' ? PROCTOR_DESK.x : state.proctorPos.x;
+          var originY = state.proctorPosture === 'fixed' ? PROCTOR_DESK.y : state.proctorPos.y;
+          var heading = state.proctorPosture === 'fixed' ? 90 + state.headOffsetDeg : state.patrolHeadingDeg;
+          var centerAngle = 90 + state.headOffsetDeg;
+          var timestamp = formatClock(state.session.elapsedSeconds);
+          var changed = false;
+
+          for (var i = 0; i < state.session.students.length; i++) {
+            var s = state.session.students[i];
+            if (s.room !== 'our_room') continue;
+            if (s.status === 'expelled' || s.status === 'cleared') continue;
+            if (!s.rfEmittingNow) continue;
+
+            var inRange = state.proctorPosture === 'fixed'
+              ? isPointInFixedFov(originX, originY, centerAngle, s.x, s.y)
+              : isPointInPatrolRadius(originX, originY, s.x, s.y);
+
+            if (!inRange) continue;
+
+            var dirInfo = describeDetectionDirection(
+              originX,
+              originY,
+              heading,
+              s.x,
+              s.y,
+              s.seatLabel,
+              s.col,
+              s.row,
+              state.proctorPosture
+            );
+
+            var nowMs = Date.now();
+            var lastAt = lastRfAlertAt[s.id] || 0;
+            var shouldAlert = !s.rfDetected || nowMs - lastAt > 7500;
+            var newlySuspected = !s.suspectedCheating && s.cctvDetected;
+
+            s.rfDetected = true;
+            s.rfLastInfo = {
+              directionText: dirInfo.directionText,
+              locationText: dirInfo.locationText,
+              distanceMeters: dirInfo.distanceMeters,
+              angleDeg: dirInfo.angleDeg,
+              band: s.rfBand || '2.4GHz RF',
+              timestamp: timestamp
+            };
+            s.suspectedCheating = s.cctvDetected;
+            changed = true;
+
+            if (shouldAlert) {
+              lastRfAlertAt[s.id] = nowMs;
+              if (newlySuspected) {
+                pushSubtitle({
+                  source: 'COMBINED',
+                  studentId: s.id,
+                  seatLabel: s.seatLabel,
+                  headline: '부정행위 의심 · ' + s.seatLabel + ' (' + s.name + ')',
+                  detail: dirInfo.locationText + '에서 전파(' + dirInfo.directionText + ')가 감지되었으며 CCTV 특이행동과 일치합니다.',
+                  timestamp: timestamp,
+                  severity: 'critical'
+                });
+              } else {
+                pushSubtitle({
+                  source: 'RF',
+                  studentId: s.id,
+                  seatLabel: s.seatLabel,
+                  headline: '전파 감지 · ' + dirInfo.locationText,
+                  detail: dirInfo.directionText + ' 방향에서 ' + s.rfBand + ' 신호 포착 (' + (state.proctorPosture === 'fixed' ? '55° 시야 검사' : '반경 2m 순찰 검사') + ')',
+                  timestamp: timestamp,
+                  severity: s.cctvDetected ? 'critical' : 'info'
+                });
+              }
+            }
+          }
+          return changed;
+        }
+
+        function stepSimulationSecond() {
+          state.session.elapsedSeconds += 1;
+          var timestamp = formatClock(state.session.elapsedSeconds);
+
+          for (var i = 0; i < state.session.students.length; i++) {
+            var s = state.session.students[i];
+            if (s.status === 'expelled' || s.status === 'cleared') {
+              s.rfEmittingNow = false;
+              s.behaviorActiveNow = false;
+              continue;
+            }
+
+            s.rfTimer -= 1;
+            if (s.rfTimer <= 0) {
+              if (s.scenario === 'cheater' || s.scenario === 'rf_innocent') {
+                s.rfEmittingNow = !s.rfEmittingNow;
+                s.rfTimer = s.rfEmittingNow ? 5 : 2;
+              } else {
+                s.rfEmittingNow = false;
+                s.rfTimer = 99;
+              }
+            }
+
+            s.behaviorTimer -= 1;
+            if (s.behaviorTimer <= 0) {
+              if (s.scenario === 'cheater' || s.scenario === 'behavior_innocent') {
+                s.behaviorActiveNow = !s.behaviorActiveNow;
+                s.behaviorTimer = s.behaviorActiveNow ? 4 : Math.floor(Math.random() * 3) + 3;
+
+                if (s.behaviorActiveNow && state.viewMode === 'cctv' && s.room === 'our_room') {
+                  var nowMs = Date.now();
+                  var lastCctv = lastCctvAlertAt[s.id] || 0;
+                  var newlySuspected = !s.suspectedCheating && s.rfDetected;
+
+                  s.cctvDetected = true;
+                  s.cctvLastInfo = {
+                    behaviorText: s.behaviorLabel || '이상 행동 포착',
+                    timestamp: timestamp
+                  };
+                  s.suspectedCheating = s.rfDetected;
+
+                  if (!s.cctvDetected || nowMs - lastCctv > 6500 || newlySuspected || nowMs - lastCctv > 0) {
+                    if (nowMs - lastCctv > 6500 || newlySuspected) {
+                      lastCctvAlertAt[s.id] = nowMs;
+                      if (newlySuspected) {
+                        pushSubtitle({
+                          source: 'COMBINED',
+                          studentId: s.id,
+                          seatLabel: s.seatLabel,
+                          headline: '부정행위 의심 · ' + s.seatLabel + ' (' + s.name + ')',
+                          detail: 'CCTV 특이행동(' + s.behaviorLabel + ')과 기존 전파 감지 기록이 동시에 확인되었습니다.',
+                          timestamp: timestamp,
+                          severity: 'critical'
+                        });
+                      } else {
+                        pushSubtitle({
+                          source: 'CCTV',
+                          studentId: s.id,
+                          seatLabel: s.seatLabel,
+                          headline: 'CCTV 특이행동 · ' + s.seatLabel + ' (' + s.name + ')',
+                          detail: s.behaviorLabel,
+                          timestamp: timestamp,
+                          severity: s.rfDetected ? 'critical' : 'warning'
+                        });
+                      }
+                    }
+                  }
+                }
+              } else {
+                s.behaviorActiveNow = false;
+                s.behaviorTimer = 99;
+              }
+            } else if (s.behaviorActiveNow && state.viewMode === 'cctv' && s.room === 'our_room' && !s.cctvDetected) {
+              lastCctvAlertAt[s.id] = Date.now();
+              s.cctvDetected = true;
+              s.cctvLastInfo = {
+                behaviorText: s.behaviorLabel || '이상 행동 포착',
+                timestamp: timestamp
+              };
+              var newlySusp = !s.suspectedCheating && s.rfDetected;
+              s.suspectedCheating = s.rfDetected;
+              pushSubtitle({
+                source: newlySusp ? 'COMBINED' : 'CCTV',
+                studentId: s.id,
+                seatLabel: s.seatLabel,
+                headline: (newlySusp ? '부정행위 의심 · ' : 'CCTV 특이행동 · ') + s.seatLabel + ' (' + s.name + ')',
+                detail: newlySusp
+                  ? 'CCTV 특이행동(' + s.behaviorLabel + ')과 전파 감지 기록이 동시 확인되었습니다.'
+                  : s.behaviorLabel,
+                timestamp: timestamp,
+                severity: newlySusp ? 'critical' : 'warning'
+              });
+            }
+          }
+
+          runRfScan();
+        }
+
+        // Proctor Actions
+        function expelStudent(studentId) {
+          var s = findStudent(studentId);
+          if (!s) return;
+          s.status = 'expelled';
+          s.rfEmittingNow = false;
+          s.behaviorActiveNow = false;
+          var timestamp = formatClock(state.session.elapsedSeconds);
+          var isCheater = s.scenario === 'cheater';
+          pushSubtitle({
+            source: 'ACTION',
+            studentId: s.id,
+            seatLabel: s.seatLabel,
+            headline: '즉시 퇴실 조치 · ' + s.seatLabel + ' (' + s.name + ')',
+            detail: isCheater
+              ? '적발 성공 — ' + s.deviceType + ' (' + s.rfBand + ') 회수 완료.'
+              : s.deviceType
+              ? '오인 퇴실 — 확인 결과 ' + s.deviceType + '로 부정행위 기기가 아니었습니다.'
+              : '오인 퇴실 — 소지한 부정 전자기기가 없었습니다.',
+            timestamp: timestamp,
+            severity: isCheater ? 'info' : 'warning'
+          });
+          renderAll();
+        }
+
+        function holdStudent(studentId) {
+          var s = findStudent(studentId);
+          if (!s) return;
+          s.status = 'held';
+          pushSubtitle({
+            source: 'ACTION',
+            studentId: s.id,
+            seatLabel: s.seatLabel,
+            headline: '보류 지정 · ' + s.seatLabel + ' (' + s.name + ')',
+            detail: '추후 검사 대상에 등록되었습니다. 상단 [추후 검사] 버튼에서 정밀 검사를 진행할 수 있습니다.',
+            timestamp: formatClock(state.session.elapsedSeconds),
+            severity: 'info'
+          });
+          renderAll();
+        }
+
+        function clearStudent(studentId) {
+          var s = findStudent(studentId);
+          if (!s) return;
+          s.status = 'cleared';
+          pushSubtitle({
+            source: 'ACTION',
+            studentId: s.id,
+            seatLabel: s.seatLabel,
+            headline: '정상 판정 · ' + s.seatLabel + ' (' + s.name + ')',
+            detail: '보류가 해제되고 정상 응시자로 처리되었습니다.',
+            timestamp: formatClock(state.session.elapsedSeconds),
+            severity: 'info'
+          });
+          renderAll();
+        }
+
+        function findStudent(id) {
+          for (var i = 0; i < state.session.students.length; i++) {
+            if (state.session.students[i].id === id) return state.session.students[i];
+          }
+          return null;
+        }
+
+        function getOurStudents() {
+          return state.session.students.filter(function (s) { return s.room === 'our_room'; });
+        }
+
+        // Rendering Functions
+        function renderHeaderAndToolbar() {
+          var our = getOurStudents();
+          var activeCount = our.filter(function (s) { return s.status === 'active' || s.status === 'held'; }).length;
+          var heldCount = our.filter(function (s) { return s.status === 'held'; }).length;
+
+          elHeaderMeta.innerHTML =
+            '<span class="header-meta-subject">제1시험실 · ' + state.session.periodNumber + '교시 ' + escapeHtml(state.session.subjectName) + '</span>' +
+            '<span aria-hidden="true">·</span>' +
+            '<span>응시 인원 ' + activeCount + '/20명</span>' +
+            '<span aria-hidden="true">·</span>' +
+            '<span>보류 ' + heldCount + '명</span>';
+
+          elBtnViewProctor.className = 'seg-btn' + (state.viewMode === 'proctor' ? ' active' : '');
+          elBtnViewCctv.className = 'seg-btn' + (state.viewMode === 'cctv' ? ' active' : '');
+
+          elPostureGroup.style.display = state.viewMode === 'proctor' ? 'inline-flex' : 'none';
+          elBtnPostureFixed.className = 'seg-btn' + (state.proctorPosture === 'fixed' ? ' active-sky' : '');
+          elBtnPosturePatrol.className = 'seg-btn' + (state.proctorPosture === 'patrol' ? ' active-sky' : '');
+
+          elFixedControls.style.display = (state.viewMode === 'proctor' && state.proctorPosture === 'fixed') ? 'flex' : 'none';
+          elPatrolControls.style.display = (state.viewMode === 'proctor' && state.proctorPosture === 'patrol') ? 'flex' : 'none';
+
+          var displayAngle = Math.round(-state.headOffsetDeg);
+          elAngleSlider.value = String(displayAngle);
+          elAngleReadout.textContent = (displayAngle > 0 ? '+' + displayAngle : displayAngle) + '°';
+
+          elBtnAutoSweep.className = 'tool-btn' + (state.autoSweep ? ' active-toggle' : '');
+          elBtnAutoSweep.textContent = state.autoSweep ? '자동 살피기 켜짐' : '자동 살피기';
+
+          elBtnOpenLater.className = 'tool-btn' + (heldCount > 0 ? ' hold-alert' : '');
+          elBtnOpenLater.textContent = '추후 검사 (' + heldCount + ')';
+
+          elBtnPause.textContent = state.isPaused ? '재개' : '일시정지';
+          elBtnSpeed.className = 'tool-btn mono-num' + (state.simSpeed === 2 ? ' active-speed' : '');
+          elBtnSpeed.textContent = state.simSpeed + '× 속도';
+        }
+
+        function renderStage() {
+          var isCctv = state.viewMode === 'cctv';
+          elStageCard.className = 'stage-card' + (isCctv ? ' cctv-mode' : '');
+          elStagePeriod.textContent = state.session.periodNumber + '교시 ' + state.session.subjectName;
+          elStageClock.textContent = formatClock(state.session.elapsedSeconds);
+
+          if (isCctv) {
+            elStageModeTitle.textContent = 'CCTV 천장 광각 (CAM-01)';
+            elStageModeHint.textContent = '제1시험실 행동 이상 감지 활성';
+          } else if (state.proctorPosture === 'fixed') {
+            elStageModeTitle.textContent = '감독관 교탁 고정 감시 (시야각 55°)';
+            elStageModeHint.textContent = '화면 클릭·드래그로 고개 방향 조절 (우리 교실 한정)';
+          } else {
+            elStageModeTitle.textContent = '감독관 순찰 이동 감시 (반경 2.0m)';
+            elStageModeHint.textContent = '바닥 클릭 또는 WASD·방향키로 이동';
+          }
+
+          var centerAngleScreenDeg = 90 + state.headOffsetDeg;
+          var parts = [];
+
+          parts.push('<defs>' +
+            '<pattern id="adjacentHatch" width="12" height="12" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">' +
+              '<line x1="0" y1="0" x2="0" y2="12" stroke="' + (isCctv ? '#1e293b' : '#cbd5e1') + '" stroke-width="1.5" />' +
+            '</pattern>' +
+            '<radialGradient id="fovGradient" cx="50%" cy="0%" r="100%">' +
+              '<stop offset="0%" stop-color="#0284c7" stop-opacity="0.28" />' +
+              '<stop offset="70%" stop-color="#0284c7" stop-opacity="0.12" />' +
+              '<stop offset="100%" stop-color="#0284c7" stop-opacity="0.04" />' +
+            '</radialGradient>' +
+            '<radialGradient id="patrolGradient" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="0%" stop-color="#0284c7" stop-opacity="0.06" />' +
+              '<stop offset="75%" stop-color="#0284c7" stop-opacity="0.15" />' +
+              '<stop offset="100%" stop-color="#0284c7" stop-opacity="0.26" />' +
+            '</radialGradient>' +
+            '<clipPath id="ourRoomClip"><rect x="' + OUR_ROOM.xMin + '" y="' + OUR_ROOM.yMin + '" width="' + (OUR_ROOM.xMax - OUR_ROOM.xMin) + '" height="' + (OUR_ROOM.yMax - OUR_ROOM.yMin) + '" /></clipPath>' +
+          '</defs>');
+
+          // Outer bg
+          parts.push('<rect x="0" y="0" width="' + STAGE_WIDTH + '" height="' + STAGE_HEIGHT + '" fill="' + (isCctv ? '#020617' : '#f1f5f9') + '" />');
+
+          // OUR ROOM
+          parts.push('<rect x="' + OUR_ROOM.xMin + '" y="' + OUR_ROOM.yMin + '" width="' + (OUR_ROOM.xMax - OUR_ROOM.xMin) + '" height="' + (OUR_ROOM.yMax - OUR_ROOM.yMin) + '" rx="4" fill="' + (isCctv ? '#0b1120' : '#ffffff') + '" stroke="' + (isCctv ? '#334155' : '#64748b') + '" stroke-width="3" />');
+
+          // 1m Grid
+          for (var gx = OUR_ROOM.xMin + PIXELS_PER_METER; gx < OUR_ROOM.xMax; gx += PIXELS_PER_METER) {
+            parts.push('<line x1="' + gx + '" y1="' + OUR_ROOM.yMin + '" x2="' + gx + '" y2="' + OUR_ROOM.yMax + '" stroke="' + (isCctv ? '#1e293b' : '#f1f5f9') + '" stroke-width="1"' + (isCctv ? ' stroke-dasharray="4 4"' : '') + ' />');
+          }
+          for (var gy = OUR_ROOM.yMin + PIXELS_PER_METER; gy < OUR_ROOM.yMax; gy += PIXELS_PER_METER) {
+            parts.push('<line x1="' + OUR_ROOM.xMin + '" y1="' + gy + '" x2="' + OUR_ROOM.xMax + '" y2="' + gy + '" stroke="' + (isCctv ? '#1e293b' : '#f1f5f9') + '" stroke-width="1"' + (isCctv ? ' stroke-dasharray="4 4"' : '') + ' />');
+          }
+
+          // Chalkboard & room label
+          parts.push('<rect x="218" y="' + (OUR_ROOM.yMin + 4) + '" width="260" height="12" rx="2" fill="' + (isCctv ? '#1e293b' : '#334155') + '" />');
+          parts.push('<text x="348" y="' + (OUR_ROOM.yMin + 30) + '" text-anchor="middle" font-size="11" font-weight="500" fill="#64748b">제1시험실 (우리 교실 · 감시 구역)</text>');
+
+          // Scale bar
+          parts.push('<g transform="translate(' + (OUR_ROOM.xMin + 14) + ', ' + (OUR_ROOM.yMax - 18) + ')">' +
+            '<line x1="0" y1="0" x2="' + PIXELS_PER_METER + '" y2="0" stroke="' + (isCctv ? '#475569' : '#94a3b8') + '" stroke-width="1.5" />' +
+            '<line x1="0" y1="-4" x2="0" y2="4" stroke="' + (isCctv ? '#475569' : '#94a3b8') + '" stroke-width="1.5" />' +
+            '<line x1="' + PIXELS_PER_METER + '" y1="-4" x2="' + PIXELS_PER_METER + '" y2="4" stroke="' + (isCctv ? '#475569' : '#94a3b8') + '" stroke-width="1.5" />' +
+            '<text x="' + (PIXELS_PER_METER + 6) + '" y="4" font-size="10" font-family="JetBrains Mono, monospace" fill="#64748b">1.0m 축척</text>' +
+          '</g>');
+
+          // ADJACENT ROOM
+          parts.push('<rect x="' + ADJACENT_ROOM.xMin + '" y="' + ADJACENT_ROOM.yMin + '" width="' + (ADJACENT_ROOM.xMax - ADJACENT_ROOM.xMin) + '" height="' + (ADJACENT_ROOM.yMax - ADJACENT_ROOM.yMin) + '" rx="4" fill="' + (isCctv ? '#090d16' : '#f8fafc') + '" stroke="' + (isCctv ? '#1e293b' : '#cbd5e1') + '" stroke-width="2" />');
+          parts.push('<rect x="' + ADJACENT_ROOM.xMin + '" y="' + ADJACENT_ROOM.yMin + '" width="' + (ADJACENT_ROOM.xMax - ADJACENT_ROOM.xMin) + '" height="' + (ADJACENT_ROOM.yMax - ADJACENT_ROOM.yMin) + '" rx="4" fill="url(#adjacentHatch)" opacity="0.45" />');
+
+          // Partition wall
+          var wallCenterX = (OUR_ROOM.xMax + ADJACENT_ROOM.xMin) / 2;
+          parts.push('<rect x="' + OUR_ROOM.xMax + '" y="' + OUR_ROOM.yMin + '" width="' + (ADJACENT_ROOM.xMin - OUR_ROOM.xMax) + '" height="' + (OUR_ROOM.yMax - OUR_ROOM.yMin) + '" fill="' + (isCctv ? '#1e293b' : '#cbd5e1') + '" />');
+          parts.push('<text x="' + wallCenterX + '" y="300" text-anchor="middle" transform="rotate(-90 ' + wallCenterX + ' 300)" font-size="10" font-weight="600" fill="' + (isCctv ? '#94a3b8' : '#475569') + '">교실 경계벽 (전파 차단 범위)</text>');
+
+          var adjCenterX = (ADJACENT_ROOM.xMin + ADJACENT_ROOM.xMax) / 2;
+          parts.push('<text x="' + adjCenterX + '" y="' + (OUR_ROOM.yMin + 30) + '" text-anchor="middle" font-size="11" font-weight="500" fill="' + (isCctv ? '#475569' : '#64748b') + '">제2시험실 (타 감독관 구역)</text>');
+          parts.push('<text x="' + adjCenterX + '" y="' + (OUR_ROOM.yMin + 47) + '" text-anchor="middle" font-size="10" fill="' + (isCctv ? '#475569' : '#94a3b8') + '">' + (isCctv ? 'CAM-01 촬영 범위 외' : '검사 범위 제외 구역') + '</text>');
+
+          // Other proctor in adjacent room
+          parts.push('<g opacity="0.55">' +
+            '<rect x="764" y="88" width="64" height="22" rx="3" fill="' + (isCctv ? '#1e293b' : '#cbd5e1') + '" />' +
+            '<circle cx="796" cy="100" r="9" fill="' + (isCctv ? '#334155' : '#94a3b8') + '" />' +
+            '<text x="796" y="128" text-anchor="middle" font-size="10" fill="' + (isCctv ? '#475569' : '#64748b') + '">타 교실 감독관</text>' +
+          '</g>');
+
+          // Front podium (교탁)
+          parts.push('<rect x="' + (PROCTOR_DESK.x - 48) + '" y="' + (PROCTOR_DESK.y - 14) + '" width="96" height="28" rx="4" fill="' + (isCctv ? '#1e293b' : '#e2e8f0') + '" stroke="' + (isCctv ? '#475569' : '#94a3b8') + '" stroke-width="1.5" />');
+          parts.push('<text x="' + PROCTOR_DESK.x + '" y="' + (PROCTOR_DESK.y + 4) + '" text-anchor="middle" font-size="10" font-weight="600" fill="' + (isCctv ? '#94a3b8' : '#475569') + '">교탁</text>');
+
+          // Proctor FOV / Patrol Circle
+          if (!isCctv && state.proctorPosture === 'fixed') {
+            var polyPts = computeClippedFovPolygon(PROCTOR_DESK.x, PROCTOR_DESK.y, centerAngleScreenDeg, FIXED_FOV_DEG);
+            var gx2 = PROCTOR_DESK.x + Math.cos(degToRad(centerAngleScreenDeg)) * 160;
+            var gy2 = PROCTOR_DESK.y + Math.sin(degToRad(centerAngleScreenDeg)) * 160;
+            parts.push('<g pointer-events="none">' +
+              '<polygon points="' + polyPts + '" fill="url(#fovGradient)" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="6 4" />' +
+              '<line x1="' + PROCTOR_DESK.x + '" y1="' + PROCTOR_DESK.y + '" x2="' + gx2.toFixed(1) + '" y2="' + gy2.toFixed(1) + '" stroke="#0284c7" stroke-width="1.25" stroke-dasharray="3 3" opacity="0.7" />' +
+            '</g>');
+          } else if (!isCctv && state.proctorPosture === 'patrol') {
+            parts.push('<g pointer-events="none" clip-path="url(#ourRoomClip)">' +
+              '<circle cx="' + state.proctorPos.x.toFixed(1) + '" cy="' + state.proctorPos.y.toFixed(1) + '" r="' + PATROL_RADIUS_PX + '" fill="url(#patrolGradient)" stroke="#0284c7" stroke-width="1.75" stroke-dasharray="6 4" />' +
+              '<text x="' + state.proctorPos.x.toFixed(1) + '" y="' + (state.proctorPos.y - PATROL_RADIUS_PX + 16).toFixed(1) + '" text-anchor="middle" font-size="10" font-family="JetBrains Mono, monospace" font-weight="600" fill="#0369a1">2.0m 전파 감지 반경</text>' +
+            '</g>');
+          }
+
+          // Students
+          for (var i = 0; i < state.session.students.length; i++) {
+            var st = state.session.students[i];
+            var isAdj = st.room === 'adjacent_room';
+            if (isAdj) {
+              var adjDeskFill = isCctv ? '#0f172a' : '#f1f5f9';
+              var adjStroke = isCctv ? '#1e293b' : '#cbd5e1';
+              var adjAvatar = isCctv ? '#1e293b' : '#cbd5e1';
+              var adjPulse = (!isCctv && st.rfEmittingNow)
+                ? '<circle cx="' + st.x + '" cy="' + st.y + '" r="18" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3" />' +
+                  '<text x="' + st.x + '" y="' + (st.y + 28) + '" text-anchor="middle" font-size="9" fill="#94a3b8">타 교실 신호(제외)</text>'
+                : '';
+              parts.push('<g opacity="0.55">' +
+                '<rect x="' + (st.x - 24) + '" y="' + (st.y - 16) + '" width="48" height="32" rx="4" fill="' + adjDeskFill + '" stroke="' + adjStroke + '" stroke-width="1" />' +
+                '<circle cx="' + st.x + '" cy="' + st.y + '" r="9" fill="' + adjAvatar + '" />' +
+                adjPulse +
+              '</g>');
+              continue;
+            }
+
+            var isSel = st.id === state.selectedStudentId;
+            var isExpelled = st.status === 'expelled';
+
+            var inCurrentScan = !isCctv && !isExpelled && (
+              state.proctorPosture === 'fixed'
+                ? isPointInFixedFov(PROCTOR_DESK.x, PROCTOR_DESK.y, centerAngleScreenDeg, st.x, st.y)
+                : isPointInPatrolRadius(state.proctorPos.x, state.proctorPos.y, st.x, st.y)
+            );
+            var showRfPulse = !isCctv && !isExpelled && st.rfEmittingNow && inCurrentScan;
+            var showCctvAlert = isCctv && !isExpelled && st.behaviorActiveNow;
+
+            var deskFill = isCctv ? '#111827' : '#ffffff';
+            var deskStroke = isCctv ? '#334155' : '#cbd5e1';
+            var avatarFill = isCctv ? '#334155' : '#e2e8f0';
+            var badgeText = '';
+            var badgeBg = '';
+
+            if (isExpelled) {
+              deskFill = isCctv ? '#090d16' : '#f8fafc';
+              deskStroke = isCctv ? '#1e293b' : '#e2e8f0';
+              avatarFill = 'transparent';
+              badgeText = '퇴실';
+              badgeBg = '#64748b';
+            } else if (st.suspectedCheating) {
+              deskStroke = '#dc2626';
+              avatarFill = isCctv ? '#7f1d1d' : '#fee2e2';
+              badgeText = '의심';
+              badgeBg = '#dc2626';
+            } else if (st.status === 'held') {
+              deskStroke = '#d97706';
+              avatarFill = isCctv ? '#78350f' : '#fef3c7';
+              badgeText = '보류';
+              badgeBg = '#d97706';
+            } else if (st.status === 'cleared') {
+              deskStroke = '#059669';
+              avatarFill = isCctv ? '#064e3b' : '#d1fae5';
+              badgeText = '정상';
+              badgeBg = '#059669';
+            } else if (st.rfDetected || st.cctvDetected) {
+              deskStroke = '#0284c7';
+              avatarFill = isCctv ? '#0c4a6e' : '#e0f2fe';
+              badgeText = st.rfDetected ? '전파' : '행동';
+              badgeBg = '#0284c7';
+            }
+
+            var gParts = [];
+            if (isSel) {
+              gParts.push('<rect x="' + (st.x - 36) + '" y="' + (st.y - 28) + '" width="72" height="56" rx="8" fill="none" stroke="' + (isCctv ? '#38bdf8' : '#0f172a') + '" stroke-width="2" />');
+            }
+            if (showRfPulse) {
+              gParts.push('<g pointer-events="none">' +
+                '<circle cx="' + st.x + '" cy="' + st.y + '" r="24" fill="none" stroke="#0284c7" stroke-width="2" opacity="0.75" />' +
+                '<circle cx="' + st.x + '" cy="' + st.y + '" r="34" fill="none" stroke="#0284c7" stroke-width="1.25" stroke-dasharray="4 3" opacity="0.55" />' +
+              '</g>');
+            }
+            if (showCctvAlert) {
+              gParts.push('<g pointer-events="none">' +
+                '<rect x="' + (st.x - 34) + '" y="' + (st.y - 26) + '" width="68" height="52" rx="4" fill="rgba(245,158,11,0.14)" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 3" />' +
+                '<text x="' + st.x + '" y="' + (st.y - 31) + '" text-anchor="middle" font-size="10" font-weight="600" fill="#fbbf24">특이행동 포착</text>' +
+              '</g>');
+            }
+
+            gParts.push('<rect x="' + (st.x - 28) + '" y="' + (st.y - 18) + '" width="56" height="36" rx="5" fill="' + deskFill + '" stroke="' + deskStroke + '" stroke-width="' + (st.suspectedCheating || isSel ? 2 : 1.5) + '" />');
+
+            if (!isExpelled) {
+              gParts.push('<circle cx="' + st.x + '" cy="' + (st.y - 2) + '" r="10" fill="' + avatarFill + '" stroke="' + deskStroke + '" stroke-width="1.2" />');
+            } else {
+              gParts.push('<line x1="' + (st.x - 7) + '" y1="' + (st.y - 8) + '" x2="' + (st.x + 7) + '" y2="' + (st.y + 4) + '" stroke="#94a3b8" stroke-width="1.5" />');
+            }
+
+            gParts.push('<text x="' + st.x + '" y="' + (st.y + 13) + '" text-anchor="middle" font-size="10" font-weight="500" fill="' + (isExpelled ? '#94a3b8' : isCctv ? '#e2e8f0' : '#1e293b') + '">' + escapeHtml(st.name) + '</text>');
+            gParts.push('<text x="' + st.x + '" y="' + (st.y + 30) + '" text-anchor="middle" font-size="9" font-family="JetBrains Mono, monospace" fill="#64748b">' + escapeHtml(st.seatLabel) + '</text>');
+
+            if (badgeText) {
+              gParts.push('<g transform="translate(' + (st.x + 12) + ', ' + (st.y - 23) + ')">' +
+                '<rect x="0" y="0" width="26" height="14" rx="3" fill="' + badgeBg + '" />' +
+                '<text x="13" y="10" text-anchor="middle" font-size="8.5" font-weight="600" fill="#ffffff">' + badgeText + '</text>' +
+              '</g>');
+            }
+
+            parts.push('<g data-student-id="' + st.id + '" style="cursor:pointer">' + gParts.join('') + '</g>');
+          }
+
+          // Proctor Marker
+          var px = state.proctorPosture === 'fixed' ? PROCTOR_DESK.x : state.proctorPos.x;
+          var py = state.proctorPosture === 'fixed' ? PROCTOR_DESK.y : state.proctorPos.y;
+          var pRot = state.proctorPosture === 'fixed' ? centerAngleScreenDeg : state.patrolHeadingDeg;
+          parts.push('<g transform="translate(' + px.toFixed(1) + ', ' + py.toFixed(1) + ')" pointer-events="none">' +
+            '<g transform="rotate(' + pRot.toFixed(1) + ')"><polygon points="14,-5 24,0 14,5" fill="' + (isCctv ? '#38bdf8' : '#0284c7') + '" /></g>' +
+            '<circle cx="0" cy="0" r="13" fill="' + (isCctv ? '#0284c7' : '#0f172a') + '" stroke="#ffffff" stroke-width="2" />' +
+            '<text x="0" y="3.5" text-anchor="middle" font-size="9" font-weight="700" fill="#ffffff">감독</text>' +
+          '</g>');
+
+          // CCTV Corner Brackets
+          if (isCctv) {
+            parts.push('<g pointer-events="none" stroke="#38bdf8" stroke-width="2" opacity="0.5">' +
+              '<polyline points="20,40 20,20 40,20" fill="none" />' +
+              '<polyline points="' + (STAGE_WIDTH - 40) + ',20 ' + (STAGE_WIDTH - 20) + ',20 ' + (STAGE_WIDTH - 20) + ',40" fill="none" />' +
+              '<polyline points="20,' + (STAGE_HEIGHT - 40) + ' 20,' + (STAGE_HEIGHT - 20) + ' 40,' + (STAGE_HEIGHT - 20) + '" fill="none" />' +
+              '<polyline points="' + (STAGE_WIDTH - 40) + ',' + (STAGE_HEIGHT - 20) + ' ' + (STAGE_WIDTH - 20) + ',' + (STAGE_HEIGHT - 20) + ' ' + (STAGE_WIDTH - 20) + ',' + (STAGE_HEIGHT - 40) + '" fill="none" />' +
+            '</g>');
+          }
+
+          elSvg.innerHTML = parts.join('');
+          elSvg.style.cursor = isCctv ? 'default' : 'crosshair';
+        }
+
+        function renderSubtitleBar() {
+          var sub = state.activeSubtitle;
+          if (!sub) {
+            elSubtitleBar.innerHTML =
+              '<div class="subtitle-idle">' +
+                '<span>자막 대기 중 · 감독관 시점에서 고개를 돌리거나 순찰 이동하고, CCTV 시점에서 특이 행동을 확인하세요.</span>' +
+                '<span style="color:#34d399;white-space:nowrap;">정상 감시 중</span>' +
+              '</div>';
+            return;
+          }
+          var tagLabel = sub.source === 'RF' ? '전파 자막' : sub.source === 'CCTV' ? 'CCTV 자막' : sub.source === 'COMBINED' ? '부정행위 의심' : '조치 알림';
+          var jumpBtn = sub.studentId
+            ? '<button type="button" class="subtitle-jump-btn" data-jump-student="' + escapeHtml(sub.studentId) + '">학생 확인</button>'
+            : '';
+
+          elSubtitleBar.innerHTML =
+            '<div class="subtitle-left">' +
+              '<span class="subtitle-tag ' + sub.severity + '">' + tagLabel + '</span>' +
+              '<div class="subtitle-text">' +
+                '<p class="subtitle-headline">' + escapeHtml(sub.headline) + '</p>' +
+                '<p class="subtitle-detail">' + escapeHtml(sub.detail) + '</p>' +
+              '</div>' +
+            '</div>' +
+            '<div class="subtitle-right">' +
+              '<span class="subtitle-time mono-num">' + escapeHtml(sub.timestamp) + '</span>' +
+              jumpBtn +
+            '</div>';
+        }
+
+        function renderStudentDetail() {
+          var s = state.selectedStudentId ? findStudent(state.selectedStudentId) : null;
+          if (!s || s.room !== 'our_room') {
+            var suspected = getOurStudents().filter(function (x) {
+              return x.suspectedCheating && x.status !== 'expelled' && x.status !== 'cleared';
+            });
+            var quickBtn = suspected.length > 0
+              ? '<div style="margin-top:12px;"><button type="button" class="btn-expel" style="background:#fef2f2;color:#b91c1c;" data-select-student="' + suspected[0].id + '">부정행위 의심 학생 ' + suspected.length + '명 확인</button></div>'
+              : '';
+            elStudentDetail.innerHTML =
+              '<div class="empty-state" style="padding:16px 8px;">' +
+                '<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#0f172a;">검사할 학생을 선택하세요</p>' +
+                '<p style="margin:0;">교실 좌석 또는 하단 자막 알림의 학생을 클릭하면 전파 및 CCTV 기록을 대조하여 퇴실·보류 조치를 할 수 있습니다.</p>' +
+                quickBtn +
+              '</div>';
+            return;
+          }
+
+          var statusText = s.status === 'expelled'
+            ? '퇴실 조치 완료'
+            : s.status === 'held'
+            ? '보류 (추후 검사 대상)'
+            : s.status === 'cleared'
+            ? '정상 판정 완료'
+            : '시험 응시 중';
+
+          var walkNearBtn = (state.proctorPosture === 'patrol' && (s.status === 'active' || s.status === 'held'))
+            ? '<button type="button" class="btn-walk-near" data-walk-near="' + s.id + '">근처 이동</button>'
+            : '';
+
+          var rfDesc = s.rfLastInfo
+            ? escapeHtml(s.rfLastInfo.directionText + ' · ' + s.rfLastInfo.band) + ' (<span class="mono-num">' + escapeHtml(s.rfLastInfo.timestamp) + '</span>)'
+            : '시야 55° 또는 반경 2m 접근 시 전파가 포착되지 않았습니다.';
+
+          var cctvDesc = s.cctvLastInfo
+            ? escapeHtml(s.cctvLastInfo.behaviorText) + ' (<span class="mono-num">' + escapeHtml(s.cctvLastInfo.timestamp) + '</span>)'
+            : 'CCTV 시점에서 특이 행동이 아직 포착되지 않았습니다.';
+
+          var calloutHtml = '';
+          if (s.suspectedCheating && s.status !== 'expelled' && s.status !== 'cleared') {
+            calloutHtml = '<div class="callout-box critical"><div><strong>부정행위 의심 (전파 + 특이행동 동시 포착)</strong><div style="margin-top:2px;">전자기기 전파와 CCTV 행동 이상이 모두 확인되었습니다. 즉시 퇴실 또는 보류 검사를 진행하세요.</div></div></div>';
+          } else if (!s.suspectedCheating && (s.rfDetected || s.cctvDetected) && s.status === 'active') {
+            calloutHtml = '<div class="callout-box warning"><div>단일 단서만 감지되었습니다. 무해 기기나 단순 긴장일 수 있으므로 <strong>보류(추후 검사)</strong> 후 순찰 및 CCTV 교차 확인을 권장합니다.</div></div>';
+          }
+
+          var actionHtml = '';
+          if (s.status === 'active' || s.status === 'held') {
+            var secondBtn = s.status === 'active'
+              ? '<button type="button" class="btn-hold" data-hold-student="' + s.id + '">보류 (추후 검사)</button>'
+              : '<button type="button" class="btn-clear" data-clear-student="' + s.id + '">정상 판정</button>';
+            var laterBtn = s.status === 'held'
+              ? '<button type="button" class="btn-later-full" data-open-later="' + s.id + '">추후 정밀 검사 진행 (0.5m 스캔 · 소지품 확인)</button>'
+              : '';
+            actionHtml =
+              '<div class="action-grid">' +
+                '<button type="button" class="btn-expel" data-expel-student="' + s.id + '">즉시 퇴실</button>' +
+                secondBtn +
+              '</div>' + laterBtn;
+          } else if (s.status === 'expelled') {
+            if (s.scenario === 'cheater') {
+              actionHtml = '<div class="callout-box success"><div><strong>부정행위자 적발 성공</strong><div style="margin-top:2px;">소지 기기: ' + escapeHtml(s.deviceType) + ' (' + escapeHtml(s.rfBand) + ')</div></div></div>';
+            } else {
+              actionHtml = '<div class="callout-box critical"><div><strong>오인 퇴실 조치됨</strong><div style="margin-top:2px;">' + (s.deviceType ? '사유: ' + escapeHtml(s.deviceType) + ' (부정행위 아님)' : '소지한 부정 전자기기가 없었습니다.') + '</div></div></div>';
+            }
+          } else {
+            actionHtml = '<div class="callout-box neutral"><div>보류 해제 및 정상 응시자로 판정되었습니다.</div></div>';
+          }
+
+          elStudentDetail.innerHTML =
+            '<div class="student-head">' +
+              '<div>' +
+                '<div class="student-meta mono-num">' + escapeHtml(s.seatLabel) + ' · ' + statusText + '</div>' +
+                '<h2 class="student-name">' + escapeHtml(s.name) + '</h2>' +
+              '</div>' +
+              walkNearBtn +
+            '</div>' +
+            '<div class="evidence-list">' +
+              '<div class="evidence-box ' + (s.rfDetected ? 'rf-active' : '') + '">' +
+                '<div class="evidence-box-top">' +
+                  '<span>전파 감지 (감독관 시점)</span>' +
+                  '<span style="color:' + (s.rfDetected ? '#0369a1' : '#64748b') + ';">' + (s.rfDetected ? '감지됨' : '미감지') + '</span>' +
+                '</div>' +
+                '<p class="evidence-box-desc">' + rfDesc + '</p>' +
+              '</div>' +
+              '<div class="evidence-box ' + (s.cctvDetected ? 'cctv-active' : '') + '">' +
+                '<div class="evidence-box-top">' +
+                  '<span>특이 행동 (CCTV 시점)</span>' +
+                  '<span style="color:' + (s.cctvDetected ? '#b45309' : '#64748b') + ';">' + (s.cctvDetected ? '포착됨' : '이상 없음') + '</span>' +
+                '</div>' +
+                '<p class="evidence-box-desc">' + cctvDesc + '</p>' +
+              '</div>' +
+            '</div>' +
+            calloutHtml +
+            actionHtml;
+        }
+
+        function renderTabs() {
+          var our = getOurStudents();
+          var held = our.filter(function (s) { return s.status === 'held'; });
+          var actioned = our.filter(function (s) { return s.status === 'expelled' || s.status === 'cleared'; });
+
+          elTabSubtitles.textContent = '자막 기록 (' + state.subtitleLog.length + ')';
+          elTabHeld.textContent = '보류 명단 (' + held.length + ')';
+          elTabActions.textContent = '조치 내역 (' + actioned.length + ')';
+
+          elTabSubtitles.className = 'tab-btn' + (state.activeTab === 'subtitles' ? ' active' : '');
+          elTabHeld.className = 'tab-btn' + (state.activeTab === 'held' ? ' active' : '');
+          elTabActions.className = 'tab-btn' + (state.activeTab === 'actions' ? ' active' : '');
+
+          if (state.activeTab === 'subtitles') {
+            if (state.subtitleLog.length === 0) {
+              elTabContent.innerHTML = '<div class="empty-state">아직 감지된 자막 기록이 없습니다.</div>';
+              return;
+            }
+            elTabContent.innerHTML = state.subtitleLog.map(function (item) {
+              var srcText = item.source === 'RF' ? '전파 감지' : item.source === 'CCTV' ? 'CCTV 행동' : item.source === 'COMBINED' ? '부정행위 의심' : '감독관 조치';
+              var color = item.severity === 'critical' ? '#dc2626' : item.severity === 'warning' ? '#b45309' : '#0369a1';
+              return '<button type="button" class="log-item"' + (item.studentId ? ' data-select-student="' + item.studentId + '"' : '') + '>' +
+                '<div class="log-item-top">' +
+                  '<span style="font-weight:600;color:' + color + ';">' + srcText + '</span>' +
+                  '<span class="mono-num" style="color:#94a3b8;">' + escapeHtml(item.timestamp) + '</span>' +
+                '</div>' +
+                '<p class="log-item-head">' + escapeHtml(item.headline) + '</p>' +
+                '<p class="log-item-sub">' + escapeHtml(item.detail) + '</p>' +
+              '</button>';
+            }).join('');
+          } else if (state.activeTab === 'held') {
+            if (held.length === 0) {
+              elTabContent.innerHTML = '<div class="empty-state">보류(추후 검사) 중인 학생이 없습니다.</div>';
+              return;
+            }
+            var banner = '<div class="hold-banner">' +
+              '<span>보류 인원 ' + held.length + '명</span>' +
+              '<button type="button" class="btn-primary-dark" style="padding:5px 10px;font-size:11px;" data-open-later="' + held[0].id + '">추후 정밀 검사 열기</button>' +
+            '</div>';
+            var rows = held.map(function (s) {
+              return '<div class="hold-row" data-select-student="' + s.id + '">' +
+                '<div style="min-width:0;">' +
+                  '<div style="font-size:12px;font-weight:600;color:#0f172a;">' + escapeHtml(s.name) + ' <span class="mono-num" style="font-weight:400;color:#64748b;">' + escapeHtml(s.seatLabel) + '</span></div>' +
+                  '<div style="font-size:11px;color:#64748b;margin-top:2px;">전파 ' + (s.rfDetected ? '감지' : '없음') + ' · CCTV ' + (s.cctvDetected ? '특이행동' : '정상') + '</div>' +
+                '</div>' +
+                '<button type="button" class="tool-btn" data-open-later="' + s.id + '">정밀 검사</button>' +
+              '</div>';
+            }).join('');
+            elTabContent.innerHTML = banner + rows;
+          } else {
+            if (actioned.length === 0) {
+              elTabContent.innerHTML = '<div class="empty-state">퇴실 또는 정상 판정 처리된 학생이 없습니다.</div>';
+              return;
+            }
+            elTabContent.innerHTML = actioned.map(function (s) {
+              var ok = (s.status === 'expelled' && s.scenario === 'cheater') || (s.status === 'cleared' && s.scenario !== 'cheater');
+              return '<button type="button" class="log-item" data-select-student="' + s.id + '" style="flex-direction:row;align-items:center;justify-content:space-between;">' +
+                '<div>' +
+                  '<div style="font-size:12px;font-weight:600;color:#0f172a;">' + escapeHtml(s.name) + ' <span class="mono-num" style="font-weight:400;color:#64748b;">' + escapeHtml(s.seatLabel) + '</span></div>' +
+                  '<div style="font-size:11px;color:#64748b;margin-top:2px;">' + (s.status === 'expelled' ? '퇴실 조치' : '정상 판정') + (s.deviceType ? ' · ' + escapeHtml(s.deviceType) : '') + '</div>' +
+                '</div>' +
+                '<span style="font-size:11px;font-weight:600;color:' + (ok ? '#047857' : '#dc2626') + ';">' + (ok ? '정확한 판정' : '오판') + '</span>' +
+              '</button>';
+            }).join('');
+          }
+        }
+
+        function renderLaterModal() {
+          if (!state.laterModalOpen) {
+            elLaterModal.classList.add('hidden');
+            return;
+          }
+          elLaterModal.classList.remove('hidden');
+
+          var held = getOurStudents().filter(function (s) { return s.status === 'held'; });
+          elLaterKicker.textContent = '보류 인원 전담 검증 · 대기 중 ' + held.length + '명';
+
+          if (held.length === 0) {
+            elLaterBody.innerHTML =
+              '<div class="empty-state" style="padding:48px 24px;">' +
+                '<p style="margin:0 0 6px;font-size:16px;font-weight:600;color:#0f172a;">검사 대기 중인 보류 학생이 없습니다</p>' +
+                '<p style="margin:0 auto;max-width:420px;">감독 중 즉시 퇴실 여부가 불확실한 학생을 &lsquo;보류 (추후 검사)&rsquo;로 지정하면 이곳에서 근접 전파 스캔과 소지품 정밀 검사를 진행할 수 있습니다.</p>' +
+                '<div style="margin-top:16px;"><button type="button" class="btn-primary-dark" id="btn-later-empty-close">시험장으로 돌아가기</button></div>' +
+              '</div>';
+            return;
+          }
+
+          var active = null;
+          for (var i = 0; i < held.length; i++) {
+            if (held[i].id === state.laterTargetId) { active = held[i]; break; }
+          }
+          if (!active) {
+            active = held[0];
+            state.laterTargetId = active.id;
+          }
+
+          var queueHtml = held.map(function (s) {
+            var count = (s.holdRfChecked ? 1 : 0) + (s.holdPhysicalChecked ? 1 : 0);
+            return '<button type="button" class="later-queue-btn' + (s.id === active.id ? ' active' : '') + '" data-later-select="' + s.id + '">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<strong style="font-size:13px;color:#0f172a;">' + escapeHtml(s.name) + '</strong>' +
+                '<span class="mono-num" style="font-size:11px;color:#64748b;">' + escapeHtml(s.seatLabel) + '</span>' +
+              '</div>' +
+              '<div style="margin-top:4px;display:flex;justify-content:space-between;font-size:11px;color:#64748b;">' +
+                '<span>전파 ' + (s.rfDetected ? '감지' : '없음') + ' · CCTV ' + (s.cctvDetected ? '포착' : '없음') + '</span>' +
+                '<span class="mono-num">검사 ' + count + '/2</span>' +
+              '</div>' +
+            '</button>';
+          }).join('');
+
+          var rfCheckText = '학생 신체 및 책상 주변 0.5m 이내 정밀 전파 계측을 실행합니다.';
+          var rfCheckColor = '#64748b';
+          if (active.holdRfChecked) {
+            if (active.scenario === 'cheater') {
+              rfCheckText = '0.5m 초근접 스캔: 비인가 ' + escapeHtml(active.rfBand) + ' 활성 전파 강하게 탐지됨';
+              rfCheckColor = '#0369a1';
+            } else if (active.scenario === 'rf_innocent') {
+              rfCheckText = '0.5m 초근접 스캔: ' + escapeHtml(active.rfBand) + ' 저전력 신호 탐지 (' + escapeHtml(active.deviceType) + ' 가능성 · 물리 확인 필요)';
+              rfCheckColor = '#0369a1';
+            } else {
+              rfCheckText = '0.5m 초근접 스캔: 전자기기 전파 신호가 전혀 검출되지 않았습니다.';
+              rfCheckColor = '#047857';
+            }
+          }
+
+          var physCheckText = '귀·손목·필통·가방 및 의료기기 인가 여부를 직접 대면 확인합니다.';
+          var physCheckColor = '#64748b';
+          if (active.holdPhysicalChecked) {
+            if (active.scenario === 'cheater') {
+              physCheckText = '소지품·착석 확인: ' + escapeHtml(active.deviceType) + ' 은닉 사용 현행 적발';
+              physCheckColor = '#b91c1c';
+            } else if (active.scenario === 'rf_innocent') {
+              physCheckText = '소지품·착석 확인: ' + escapeHtml(active.deviceType) + ' 확인 완료 (부정행위 아님)';
+              physCheckColor = '#047857';
+            } else if (active.scenario === 'behavior_innocent') {
+              physCheckText = '소지품·착석 확인: 전자기기 없음 (' + escapeHtml(active.behaviorLabel || '단순 행동') + ')';
+              physCheckColor = '#047857';
+            } else {
+              physCheckText = '소지품·착석 확인: 전자기기 및 부정행위 정황 없음';
+              physCheckColor = '#047857';
+            }
+          }
+
+          elLaterBody.innerHTML =
+            '<div class="later-split">' +
+              '<aside class="later-queue">' + queueHtml + '</aside>' +
+              '<div class="later-detail">' +
+                '<div class="student-head" style="padding-bottom:12px;">' +
+                  '<div>' +
+                    '<div class="student-meta mono-num">' + escapeHtml(active.seatLabel) + ' · 보류 (추후 검사 대상)</div>' +
+                    '<h3 class="student-name">' + escapeHtml(active.name) + '</h3>' +
+                  '</div>' +
+                  (active.suspectedCheating ? '<span style="padding:4px 10px;border-radius:6px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:12px;font-weight:600;">전파+행동 동시 의심</span>' : '') +
+                '</div>' +
+                '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+                  '<div class="evidence-box"><div class="evidence-box-top"><span>기존 교실 전파 기록</span></div><p class="evidence-box-desc">' + (active.rfLastInfo ? escapeHtml(active.rfLastInfo.directionText + ' · ' + active.rfLastInfo.band) : '교실 감시 중 전파 미감지') + '</p></div>' +
+                  '<div class="evidence-box"><div class="evidence-box-top"><span>기존 CCTV 행동 기록</span></div><p class="evidence-box-desc">' + (active.cctvLastInfo ? escapeHtml(active.cctvLastInfo.behaviorText) : 'CCTV 특이 행동 미포착') + '</p></div>' +
+                '</div>' +
+                '<div style="display:flex;flex-direction:column;gap:10px;">' +
+                  '<div style="font-size:12px;font-weight:600;color:#334155;">정밀 검사 절차 (실제 전자기기 소지 여부 확인)</div>' +
+                  '<div class="step-card">' +
+                    '<div><div style="font-size:13px;font-weight:600;color:#0f172a;">1. 휴대용 스캐너 초근접(0.5m) 전파 검사</div><p style="margin:4px 0 0;font-size:12px;color:' + rfCheckColor + ';">' + rfCheckText + '</p></div>' +
+                    '<button type="button" class="btn-scan" data-hold-rf="' + active.id + '"' + (active.holdRfChecked ? ' disabled' : '') + '>' + (active.holdRfChecked ? '스캔 완료' : '근접 스캔 실행') + '</button>' +
+                  '</div>' +
+                  '<div class="step-card">' +
+                    '<div><div style="font-size:13px;font-weight:600;color:#0f172a;">2. 소지품 · 착용물 대면 물리 검사</div><p style="margin:4px 0 0;font-size:12px;color:' + physCheckColor + ';">' + physCheckText + '</p></div>' +
+                    '<button type="button" class="btn-scan" style="background:' + (active.holdPhysicalChecked ? '' : '#0f172a') + ';" data-hold-phys="' + active.id + '"' + (active.holdPhysicalChecked ? ' disabled' : '') + '>' + (active.holdPhysicalChecked ? '확인 완료' : '소지품 검사') + '</button>' +
+                  '</div>' +
+                '</div>' +
+                '<div style="padding-top:12px;border-top:1px solid #f1f5f9;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">' +
+                  '<span style="font-size:12px;color:#64748b;">검사 결과를 바탕으로 최종 감독관 판정을 내리세요.</span>' +
+                  '<div style="display:flex;gap:8px;">' +
+                    '<button type="button" class="btn-clear" data-clear-student="' + active.id + '">정상 판정 (보류 해제)</button>' +
+                    '<button type="button" class="btn-expel" data-expel-student="' + active.id + '">최종 퇴실 조치</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        function renderResultModal() {
+          if (!state.resultModalOpen) {
+            elResultModal.classList.add('hidden');
+            return;
+          }
+          elResultModal.classList.remove('hidden');
+
+          var our = getOurStudents();
+          var cheaters = our.filter(function (s) { return s.scenario === 'cheater'; });
+          var caught = cheaters.filter(function (s) { return s.status === 'expelled'; });
+          var missed = cheaters.filter(function (s) { return s.status !== 'expelled'; });
+          var falseExp = our.filter(function (s) { return s.status === 'expelled' && s.scenario !== 'cheater'; });
+          var stillHeld = our.filter(function (s) { return s.status === 'held'; });
+
+          elResultKicker.textContent = state.session.periodNumber + '교시 ' + state.session.subjectName + ' 감독 결산';
+          elBtnStartNext.textContent = (state.session.periodNumber + 1) + '교시 다음 시험 시작 →';
+
+          var heldWarning = stillHeld.length > 0
+            ? '<div class="callout-box warning" style="margin-top:0;justify-content:space-between;align-items:center;">' +
+                '<span>현재 <strong>보류(추후 검사)</strong> 상태인 학생이 ' + stillHeld.length + '명 있습니다. 추후 정밀 검사를 먼저 진행할 수 있습니다.</span>' +
+                '<button type="button" class="btn-primary-dark" style="background:#b45309;" data-open-later="' + stillHeld[0].id + '">보류 학생 추후 검사하기</button>' +
+              '</div>'
+            : '';
+
+          var cheaterRows = cheaters.map(function (c) {
+            var ok = c.status === 'expelled';
+            return '<div style="padding:12px 16px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;">' +
+              '<div>' +
+                '<strong>' + escapeHtml(c.name) + '</strong> <span class="mono-num" style="color:#64748b;">' + escapeHtml(c.seatLabel) + '</span>' +
+                '<div style="color:#475569;margin-top:2px;">' + escapeHtml(c.deviceType) + ' (' + escapeHtml(c.rfBand) + ') · ' + escapeHtml(c.behaviorLabel) + '</div>' +
+              '</div>' +
+              '<span style="font-weight:600;color:' + (ok ? '#047857' : '#dc2626') + ';white-space:nowrap;">' + (ok ? '적발 완료' : '미적발 (' + (c.status === 'held' ? '보류 중' : '응시 완료') + ')') + '</span>' +
+            '</div>';
+          }).join('');
+
+          var falseSection = falseExp.length > 0
+            ? '<div><h3 style="margin:0 0 8px;font-size:14px;font-weight:600;color:#b91c1c;">오인 퇴실 내역</h3>' +
+              '<div style="border:1px solid #fecaca;border-radius:8px;background:rgba(254,242,242,0.4);">' +
+                falseExp.map(function (f) {
+                  return '<div style="padding:10px 14px;border-bottom:1px solid #fee2e2;display:flex;justify-content:space-between;font-size:12px;">' +
+                    '<strong>' + escapeHtml(f.name) + ' (' + escapeHtml(f.seatLabel) + ')</strong>' +
+                    '<span style="color:#475569;">' + escapeHtml(f.deviceType || f.behaviorLabel || '특이사항 없음 (일반 응시자)') + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div></div>'
+            : '';
+
+          elResultBody.innerHTML =
+            '<div class="kpi-grid">' +
+              '<div class="kpi-card"><p class="kpi-label">실제 부정행위자</p><p class="kpi-val mono-num">' + cheaters.length + '명</p></div>' +
+              '<div class="kpi-card emerald"><p class="kpi-label" style="color:#047857;">적발 퇴실 성공</p><p class="kpi-val mono-num" style="color:#064e3b;">' + caught.length + '명</p></div>' +
+              '<div class="kpi-card amber"><p class="kpi-label" style="color:#92400e;">미적발 인원</p><p class="kpi-val mono-num" style="color:#78350f;">' + missed.length + '명</p></div>' +
+              '<div class="kpi-card red"><p class="kpi-label" style="color:#b91c1c;">오인 퇴실</p><p class="kpi-val mono-num" style="color:#7f1d1d;">' + falseExp.length + '명</p></div>' +
+            '</div>' +
+            heldWarning +
+            '<div><h3 style="margin:0 0 8px;font-size:14px;font-weight:600;color:#0f172a;">제1시험실 전자기기 부정행위자 실제 내역</h3>' +
+            '<div style="border:1px solid #e2e8f0;border-radius:8px;">' + cheaterRows + '</div></div>' +
+            falseSection;
+        }
+
+        function renderAll() {
+          renderHeaderAndToolbar();
+          renderStage();
+          renderSubtitleBar();
+          renderStudentDetail();
+          renderTabs();
+          renderLaterModal();
+          renderResultModal();
+        }
+
+        // Event Helpers
+        function getSvgCoords(e) {
+          var rect = elSvg.getBoundingClientRect();
+          return {
+            x: ((e.clientX - rect.left) / rect.width) * STAGE_WIDTH,
+            y: ((e.clientY - rect.top) / rect.height) * STAGE_HEIGHT
+          };
+        }
+
+        function aimHeadAt(x, y) {
+          var rawAngle = radToDeg(Math.atan2(y - PROCTOR_DESK.y, x - PROCTOR_DESK.x));
+          var offset = rawAngle - 90;
+          if (offset > 180) offset -= 360;
+          if (offset < -180) offset += 360;
+          state.autoSweep = false;
+          state.headOffsetDeg = Math.max(-68, Math.min(68, Math.round(offset)));
+          runRfScan();
+          renderHeaderAndToolbar();
+          renderStage();
+          renderSubtitleBar();
+          renderStudentDetail();
+          renderTabs();
+        }
+
+        // Event Listeners
+        elBtnViewProctor.addEventListener('click', function () {
+          state.viewMode = 'proctor';
+          runRfScan();
+          renderAll();
+        });
+        elBtnViewCctv.addEventListener('click', function () {
+          state.viewMode = 'cctv';
+          renderAll();
+        });
+        elBtnPostureFixed.addEventListener('click', function () {
+          state.proctorPosture = 'fixed';
+          state.walkTarget = null;
+          runRfScan();
+          renderAll();
+        });
+        elBtnPosturePatrol.addEventListener('click', function () {
+          state.proctorPosture = 'patrol';
+          state.autoSweep = false;
+          runRfScan();
+          renderAll();
+        });
+
+        document.getElementById('btn-turn-left').addEventListener('click', function () {
+          state.autoSweep = false;
+          state.headOffsetDeg = Math.min(68, state.headOffsetDeg + 15);
+          runRfScan();
+          renderAll();
+        });
+        document.getElementById('btn-turn-right').addEventListener('click', function () {
+          state.autoSweep = false;
+          state.headOffsetDeg = Math.max(-68, state.headOffsetDeg - 15);
+          runRfScan();
+          renderAll();
+        });
+        elAngleSlider.addEventListener('input', function (e) {
+          state.autoSweep = false;
+          state.headOffsetDeg = -Number(e.target.value);
+          runRfScan();
+          renderHeaderAndToolbar();
+          renderStage();
+          renderSubtitleBar();
+          renderStudentDetail();
+          renderTabs();
+        });
+        elBtnAutoSweep.addEventListener('click', function () {
+          state.autoSweep = !state.autoSweep;
+          renderHeaderAndToolbar();
+        });
+        document.getElementById('btn-return-desk').addEventListener('click', function () {
+          state.walkTarget = { x: PROCTOR_DESK.x, y: PROCTOR_DESK.y + 36 };
+        });
+
+        elBtnOpenLater.addEventListener('click', function () {
+          state.laterTargetId = null;
+          state.resultModalOpen = false;
+          state.laterModalOpen = true;
+          renderAll();
+        });
+        elBtnPause.addEventListener('click', function () {
+          state.isPaused = !state.isPaused;
+          renderHeaderAndToolbar();
+        });
+        elBtnSpeed.addEventListener('click', function () {
+          state.simSpeed = state.simSpeed === 1 ? 2 : 1;
+          renderHeaderAndToolbar();
+        });
+
+        document.getElementById('btn-open-next-exam').addEventListener('click', function () {
+          state.resultModalOpen = true;
+          renderResultModal();
+        });
+        document.getElementById('btn-close-result').addEventListener('click', function () {
+          state.resultModalOpen = false;
+          renderResultModal();
+        });
+        document.getElementById('btn-continue-proctor').addEventListener('click', function () {
+          state.resultModalOpen = false;
+          renderResultModal();
+        });
+        elBtnStartNext.addEventListener('click', function () {
+          var nextPeriod = state.session.periodNumber + 1;
+          state.session = generateExamSession(nextPeriod);
+          state.selectedStudentId = null;
+          state.subtitleLog = [];
+          state.activeSubtitle = null;
+          state.proctorPosture = 'fixed';
+          state.viewMode = 'proctor';
+          state.headOffsetDeg = 0;
+          state.autoSweep = false;
+          state.proctorPos = { x: PROCTOR_DESK.x, y: PROCTOR_DESK.y };
+          state.walkTarget = null;
+          lastRfAlertAt = {};
+          lastCctvAlertAt = {};
+          state.resultModalOpen = false;
+          state.laterModalOpen = false;
+          state.isPaused = false;
+          renderAll();
+        });
+        document.getElementById('btn-close-later').addEventListener('click', function () {
+          state.laterModalOpen = false;
+          renderLaterModal();
+        });
+
+        elTabSubtitles.addEventListener('click', function () { state.activeTab = 'subtitles'; renderTabs(); });
+        elTabHeld.addEventListener('click', function () { state.activeTab = 'held'; renderTabs(); });
+        elTabActions.addEventListener('click', function () { state.activeTab = 'actions'; renderTabs(); });
+
+        // SVG Pointer Interactions
+        elSvg.addEventListener('pointerdown', function (e) {
+          var studentEl = e.target.closest ? e.target.closest('[data-student-id]') : null;
+          if (studentEl) {
+            state.selectedStudentId = studentEl.getAttribute('data-student-id');
+            renderStage();
+            renderStudentDetail();
+            return;
+          }
+          var coords = getSvgCoords(e);
+          if (!isInsideOurRoom(coords.x, coords.y)) return;
+          if (state.viewMode === 'proctor' && state.proctorPosture === 'fixed') {
+            state.isDraggingAim = true;
+            aimHeadAt(coords.x, coords.y);
+          } else if (state.viewMode === 'proctor' && state.proctorPosture === 'patrol') {
+            state.walkTarget = {
+              x: Math.max(OUR_ROOM.xMin + 24, Math.min(OUR_ROOM.xMax - 24, coords.x)),
+              y: Math.max(OUR_ROOM.yMin + 24, Math.min(OUR_ROOM.yMax - 24, coords.y))
+            };
+          }
+        });
+        elSvg.addEventListener('pointermove', function (e) {
+          if (!state.isDraggingAim) return;
+          if (state.viewMode !== 'proctor' || state.proctorPosture !== 'fixed') return;
+          var coords = getSvgCoords(e);
+          aimHeadAt(coords.x, coords.y);
+        });
+        window.addEventListener('pointerup', function () {
+          state.isDraggingAim = false;
+        });
+
+        // Delegated Click Handlers for Dynamic Panels & Modals
+        document.addEventListener('click', function (e) {
+          var target = e.target;
+          if (!target || !target.closest) return;
+
+          var jumpEl = target.closest('[data-jump-student]');
+          if (jumpEl) {
+            state.selectedStudentId = jumpEl.getAttribute('data-jump-student');
+            renderStage();
+            renderStudentDetail();
+            return;
+          }
+
+          var selEl = target.closest('[data-select-student]');
+          if (selEl) {
+            state.selectedStudentId = selEl.getAttribute('data-select-student');
+            renderStage();
+            renderStudentDetail();
+            return;
+          }
+
+          var walkEl = target.closest('[data-walk-near]');
+          if (walkEl) {
+            var st = findStudent(walkEl.getAttribute('data-walk-near'));
+            if (st) {
+              state.viewMode = 'proctor';
+              state.proctorPosture = 'patrol';
+              state.walkTarget = { x: st.x, y: Math.max(OUR_ROOM.yMin + 28, st.y - 44) };
+              renderAll();
+            }
+            return;
+          }
+
+          var expelEl = target.closest('[data-expel-student]');
+          if (expelEl) {
+            expelStudent(expelEl.getAttribute('data-expel-student'));
+            return;
+          }
+
+          var holdEl = target.closest('[data-hold-student]');
+          if (holdEl) {
+            holdStudent(holdEl.getAttribute('data-hold-student'));
+            return;
+          }
+
+          var clearEl = target.closest('[data-clear-student]');
+          if (clearEl) {
+            clearStudent(clearEl.getAttribute('data-clear-student'));
+            return;
+          }
+
+          var openLaterEl = target.closest('[data-open-later]');
+          if (openLaterEl) {
+            state.laterTargetId = openLaterEl.getAttribute('data-open-later');
+            state.resultModalOpen = false;
+            state.laterModalOpen = true;
+            renderAll();
+            return;
+          }
+
+          var laterSel = target.closest('[data-later-select]');
+          if (laterSel) {
+            state.laterTargetId = laterSel.getAttribute('data-later-select');
+            renderLaterModal();
+            return;
+          }
+
+          var holdRfEl = target.closest('[data-hold-rf]');
+          if (holdRfEl) {
+            var stRf = findStudent(holdRfEl.getAttribute('data-hold-rf'));
+            if (stRf) { stRf.holdRfChecked = true; renderLaterModal(); }
+            return;
+          }
+
+          var holdPhysEl = target.closest('[data-hold-phys]');
+          if (holdPhysEl) {
+            var stPh = findStudent(holdPhysEl.getAttribute('data-hold-phys'));
+            if (stPh) { stPh.holdPhysicalChecked = true; renderLaterModal(); }
+            return;
+          }
+
+          if (target.id === 'btn-later-empty-close') {
+            state.laterModalOpen = false;
+            renderLaterModal();
+          }
+        });
+
+        // Keyboard Controls
+        window.addEventListener('keydown', function (e) {
+          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+          var key = e.key.toLowerCase();
+          if (key === 'w' || key === 'a' || key === 's' || key === 'd' ||
+              key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright') {
+            if (key.indexOf('arrow') === 0) e.preventDefault();
+            pressedKeys[key] = true;
+            if (state.proctorPosture === 'patrol') state.walkTarget = null;
+            if (state.proctorPosture === 'fixed' && (key === 'a' || key === 'd' || key === 'arrowleft' || key === 'arrowright')) {
+              state.autoSweep = false;
+            }
+          }
+        });
+        window.addEventListener('keyup', function (e) {
+          delete pressedKeys[e.key.toLowerCase()];
+        });
+
+        // Smooth Animation & Simulation Tick Loop (40ms frame)
+        window.setInterval(function () {
+          if (state.isPaused) return;
+          var needsRender = false;
+
+          if (state.viewMode === 'proctor' && state.proctorPosture === 'fixed') {
+            var delta = 0;
+            if (pressedKeys.a || pressedKeys.arrowleft) delta += 2.4;
+            if (pressedKeys.d || pressedKeys.arrowright) delta -= 2.4;
+            if (delta !== 0) {
+              state.headOffsetDeg = Math.max(-68, Math.min(68, Math.round((state.headOffsetDeg + delta) * 10) / 10));
+              needsRender = true;
+            } else if (state.autoSweep) {
+              var nextAngle = state.headOffsetDeg + 1.2 * state.simSpeed * state.sweepDir;
+              if (nextAngle >= 64) { nextAngle = 64; state.sweepDir = -1; }
+              if (nextAngle <= -64) { nextAngle = -64; state.sweepDir = 1; }
+              state.headOffsetDeg = nextAngle;
+              needsRender = true;
+            }
+          }
+
+          if (state.viewMode === 'proctor' && state.proctorPosture === 'patrol') {
+            var vx = 0;
+            var vy = 0;
+            if (pressedKeys.w || pressedKeys.arrowup) vy -= 1;
+            if (pressedKeys.s || pressedKeys.arrowdown) vy += 1;
+            if (pressedKeys.a || pressedKeys.arrowleft) vx -= 1;
+            if (pressedKeys.d || pressedKeys.arrowright) vx += 1;
+            var speedPx = 7.5 * state.simSpeed;
+
+            if (vx !== 0 || vy !== 0) {
+              var len = Math.hypot(vx, vy);
+              var nx = (vx / len) * speedPx;
+              var ny = (vy / len) * speedPx;
+              state.patrolHeadingDeg = radToDeg(Math.atan2(ny, nx));
+              state.proctorPos.x = Math.max(OUR_ROOM.xMin + 24, Math.min(OUR_ROOM.xMax - 24, state.proctorPos.x + nx));
+              state.proctorPos.y = Math.max(OUR_ROOM.yMin + 24, Math.min(OUR_ROOM.yMax - 24, state.proctorPos.y + ny));
+              needsRender = true;
+            } else if (state.walkTarget) {
+              var dx = state.walkTarget.x - state.proctorPos.x;
+              var dy = state.walkTarget.y - state.proctorPos.y;
+              var dist = Math.hypot(dx, dy);
+              if (dist <= speedPx) {
+                state.proctorPos.x = state.walkTarget.x;
+                state.proctorPos.y = state.walkTarget.y;
+                state.walkTarget = null;
+              } else {
+                var wnx = (dx / dist) * speedPx;
+                var wny = (dy / dist) * speedPx;
+                state.patrolHeadingDeg = radToDeg(Math.atan2(wny, wnx));
+                state.proctorPos.x += wnx;
+                state.proctorPos.y += wny;
+              }
+              needsRender = true;
+            }
+          }
+
+          if (needsRender) {
+            runRfScan();
+            renderHeaderAndToolbar();
+            renderStage();
+            renderSubtitleBar();
+            renderStudentDetail();
+            renderTabs();
+          }
+
+          simTickCounter += 1;
+          var ticksPerSecond = state.simSpeed === 2 ? 12 : 25;
+          if (simTickCounter >= ticksPerSecond) {
+            simTickCounter = 0;
+            stepSimulationSecond();
+            renderHeaderAndToolbar();
+            renderStage();
+            renderSubtitleBar();
+            renderStudentDetail();
+            renderTabs();
+          }
+        }, 40);
+
+        // Standalone index.html Download Handler
+        function downloadStandaloneHtml() {
+          var clone = document.documentElement.cloneNode(true);
+          var clearIds = [
+            'header-meta',
+            'classroom-svg',
+            'subtitle-bar',
+            'student-detail-card',
+            'tab-content',
+            'later-modal-body',
+            'result-modal-body'
+          ];
+          for (var i = 0; i < clearIds.length; i++) {
+            var node = clone.querySelector('#' + clearIds[i]);
+            if (node) node.innerHTML = '';
+          }
+          var stageCard = clone.querySelector('#stage-card');
+          if (stageCard) stageCard.className = 'stage-card';
+          var laterModal = clone.querySelector('#later-modal');
+          if (laterModal) laterModal.className = 'modal-backdrop hidden';
+          var resultModal = clone.querySelector('#result-modal');
+          if (resultModal) resultModal.className = 'modal-backdrop hidden';
+
+          var htmlContent = '<!doctype html>\n' + clone.outerHTML;
+          var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement('a');
+          link.href = url;
+          link.download = 'index.html';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.setTimeout(function () {
+            URL.revokeObjectURL(url);
+          }, 1000);
+        }
+
+        document.getElementById('btn-download-html').addEventListener('click', downloadStandaloneHtml);
+
+        // Initial Render
+        runRfScan();
+        renderAll();
+      })();
+    </script>
+  
+
+</body></html>
